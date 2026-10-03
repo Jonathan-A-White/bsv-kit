@@ -35,7 +35,8 @@
     "prepare": "npm run build",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "smoke": "node scripts/consumer-smoke.mjs"
   },
   "dependencies": {
     "@bsv/sdk": "^2.2.0",
