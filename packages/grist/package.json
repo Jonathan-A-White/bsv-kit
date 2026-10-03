@@ -17,6 +17,6 @@
     "!**/*.tsbuildinfo"
   ],
   "dependencies": {
-    "@bsv-kit/bsv": "*"
+    "@bsv/sdk": "^2.2.0"
   }
 }

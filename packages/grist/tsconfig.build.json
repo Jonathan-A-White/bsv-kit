@@ -5,8 +5,23 @@
     "declaration": true,
     "rootDir": "src",
     "outDir": "dist",
-    "tsBuildInfoFile": "dist/.tsbuildinfo"
+    "tsBuildInfoFile": "dist/.tsbuildinfo",
+    "types": [
+      "node"
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "bsv-kit/bsv": [
+        "../bsv/src/index.ts"
+      ]
+    }
   },
-  "include": ["src"],
-  "references": [{ "path": "../bsv/tsconfig.build.json" }]
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../bsv/tsconfig.build.json"
+    }
+  ]
 }
