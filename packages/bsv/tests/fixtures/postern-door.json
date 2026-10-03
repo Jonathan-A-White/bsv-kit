@@ -1,0 +1,18 @@
+{
+  "keyHex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+  "publicKeyHex": "0284bf7562262bbd6940085748f3be6afa52ae317155181ece31b66351ccffa4b0",
+  "nonce": "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+  "authorization": "Postern 0284bf7562262bbd6940085748f3be6afa52ae317155181ece31b66351ccffa4b0:00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff:304502210089a6249c7982aa75946979fef1a8914bafe37b2ef976c541a2acb03f9edccd0d022016eb1f2dbf9c0fa047db1e8aa5e5370e1e8d14cb95fdde62e1becadec2fadcf9",
+  "requests": [
+    {
+      "url": "/api/challenge",
+      "method": "GET",
+      "authorization": null
+    },
+    {
+      "url": "/api/messages?since=0",
+      "method": "GET",
+      "authorization": "Postern 0284bf7562262bbd6940085748f3be6afa52ae317155181ece31b66351ccffa4b0:00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff:304502210089a6249c7982aa75946979fef1a8914bafe37b2ef976c541a2acb03f9edccd0d022016eb1f2dbf9c0fa047db1e8aa5e5370e1e8d14cb95fdde62e1becadec2fadcf9"
+    }
+  ]
+}
