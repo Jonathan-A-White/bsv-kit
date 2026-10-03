@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "bsv-kit/bsv": ["../../packages/bsv/src/index.ts"],
+      "bsv-kit/grist": ["../../packages/grist/src/index.ts"]
+    }
+  },
+  "include": ["src", "tests", "vite.config.ts"]
+}
