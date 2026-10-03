@@ -39,3 +39,11 @@ GitHub by tag works.
   package's `tests/`.
 - Do not change `.github/workflows/` unless the story says so.
 - Every epic ends with a demo story (label demo) that closes on the Governor's 'Looks good'.
+
+## Install notes
+
+- `npm install github:Jonathan-A-White/bsv-kit#<tag>` installs the devDependencies, runs `prepare`
+  and packs `packages/*/dist/**`. (`files` needs `dist/**`: the folders are git-ignored, and npm
+  skips a bare `dist` entry.)
+- `npm install <path-to-a-clone>` links the clone and runs `prepare` there without installing
+  anything, so the clone must have had `npm ci` first (the gate does that).
