@@ -13,7 +13,7 @@ All must pass clean before a story is done. Node 20+. A fresh worktree needs `np
 ## Layout
 
 ```
-packages/bsv/     @bsv-kit/bsv: vault, door, licence (one runtime dependency, @bsv/sdk)
+packages/bsv/     @bsv-kit/bsv: vault, door, licence (runtime dependencies: @bsv/sdk, @scure/bip39)
 packages/grist/   @bsv-kit/grist: send grist, poll the answer (uses bsv by workspace)
   each: package.json, src/, tests/, README.md, tsconfig.build.json
 tsconfig.base.json  strict settings shared by all

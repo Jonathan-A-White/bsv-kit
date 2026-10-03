@@ -38,7 +38,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@bsv/sdk": "^2.2.0"
+    "@bsv/sdk": "^2.2.0",
+    "@scure/bip39": "^2.4.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
