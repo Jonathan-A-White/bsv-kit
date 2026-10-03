@@ -14,10 +14,11 @@ All must pass clean before a story is done. Node 20+. A fresh worktree needs `np
 
 ```
 packages/bsv/     @bsv-kit/bsv: vault, door, licence (runtime dependencies: @bsv/sdk, @scure/bip39)
-packages/grist/   @bsv-kit/grist: send grist, poll the answer (uses bsv by workspace)
+packages/grist/   @bsv-kit/grist: send grist, poll the answer (imports bsv as 'bsv-kit/bsv', the name a consumer resolves)
   each: package.json, src/, tests/, README.md, tsconfig.build.json
 tsconfig.base.json  strict settings shared by all
-tsconfig.json       typecheck of src + tests (grist resolves @bsv-kit/bsv to bsv's source)
+tsconfig.json       typecheck of src + tests (grist's 'bsv-kit/bsv' resolves to bsv's source; so does vitest)
+scripts/consumer-smoke.mjs  installs bsv-kit from a fresh clone into a scratch app (npm run smoke; npm test runs it)
 vitest.config.ts    runs packages/*/tests/**/*.test.ts
 ```
 

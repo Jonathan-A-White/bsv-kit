@@ -6,4 +6,10 @@ describe('@bsv-kit/grist', () => {
     expect(Object.keys(grist)).toEqual(['grist']);
     expect(grist.grist).toBeTypeOf('object');
   });
+
+  it('names what an app uses: sendGrist, awaitAnswer, decryptAnswer', () => {
+    expect(grist.grist.sendGrist).toBeTypeOf('function');
+    expect(grist.grist.awaitAnswer).toBeTypeOf('function');
+    expect(grist.grist.decryptAnswer).toBeTypeOf('function');
+  });
 });
