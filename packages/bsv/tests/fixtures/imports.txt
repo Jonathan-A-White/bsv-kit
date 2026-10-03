@@ -1,0 +1,7 @@
+import { a } from '@bsv-kit/grist';
+import b from "../../grist/src/index.js";
+export * from '@bsv-kit/grist/extra';
+export { c } from 'somewhere';
+import '@bsv-kit/grist';
+const d = await import('@bsv-kit/grist');
+const e = require('@bsv-kit/grist');
