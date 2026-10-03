@@ -9,6 +9,8 @@ export const WOC_TESTNET_URL = 'https://api.whatsonchain.com/v1/bsv/test';
 const MAX_ATTEMPTS = 3;
 const INITIAL_RETRY_DELAY_MS = 500;
 const MAX_ERROR_BODY_CHARS = 200;
+// Postern's issue.ts MAX_HISTORY_PAGES: 50 pages of 100 transactions.
+const MAX_HISTORY_PAGES = 50;
 // WhatsOnChain rate-limits at 3 requests/s per IP without a key, and its 429 carries no CORS header, so a
 // browser sees a rejected fetch rather than a status. Every request is paced this far apart.
 const MIN_REQUEST_SPACING_MS = 350;
@@ -67,8 +69,43 @@ export class WhatsOnChainReader implements ChainReader {
     await myTurn;
   }
 
-  getAddressHistory(address: string): Promise<AddressHistoryEntry[]> {
-    return this.history(`/address/${address.trim()}/history`);
+  /** The whole confirmed history, oldest first. WhatsOnChain's plain /history holds only the newest 100
+   * transactions, so this pages /confirmed/history by nextPageToken (newest page first), as Postern's
+   * issue.ts does. Past MAX_HISTORY_PAGES it throws: a list missing its oldest pages could read as a key
+   * that never minted. */
+  async getAddressHistory(address: string): Promise<AddressHistoryEntry[]> {
+    const path = `/address/${address.trim()}/confirmed/history`;
+    const pages: HistoryRow[][] = [];
+    let token = '';
+    for (;;) {
+      if (pages.length === MAX_HISTORY_PAGES) {
+        throw new ChainError(`The history of ${address.trim()} runs past ${MAX_HISTORY_PAGES} pages, more than can be read here.`);
+      }
+      await this.waitForRequestSlot();
+      const page = await this.historyPage(path, token);
+      pages.push(page.rows);
+      if (!page.nextPageToken) break;
+      token = page.nextPageToken;
+    }
+    return pages
+      .reverse()
+      .flat()
+      .map((row) => ({ txid: row.tx_hash, height: row.height }))
+      .sort((a, b) => (a.height ?? 0) - (b.height ?? 0));
+  }
+
+  private async historyPage(path: string, token: string): Promise<{ rows: HistoryRow[]; nextPageToken?: string }> {
+    const query = token ? `?token=${encodeURIComponent(token)}` : '';
+    const body = (await (await this.request(`${path}${query}`)).json()) as unknown;
+    if (Array.isArray(body)) return { rows: body as HistoryRow[] };
+    const page = body as { result?: unknown; nextPageToken?: unknown; error?: unknown } | null;
+    if (page && typeof page.error === 'string' && page.error) {
+      throw new ChainError(`WhatsOnChain could not read the history: ${page.error}`);
+    }
+    const nextPageToken = typeof page?.nextPageToken === 'string' ? page.nextPageToken : undefined;
+    if (page && Array.isArray(page.result)) return { rows: page.result as HistoryRow[], nextPageToken };
+    if (page && 'result' in page && page.result === null) return { rows: [], nextPageToken };
+    throw new ChainError(`WhatsOnChain ${path} returned an unexpected response shape: ${JSON.stringify(body).slice(0, MAX_ERROR_BODY_CHARS)}`);
   }
 
   getUnconfirmedAddressHistory(address: string): Promise<AddressHistoryEntry[]> {

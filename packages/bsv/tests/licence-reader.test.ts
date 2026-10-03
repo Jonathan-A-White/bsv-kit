@@ -34,7 +34,8 @@ function scriptedFetch(scenario: Scenario) {
     const url = String(input);
     requests.push({ url, method: init?.method ?? 'GET' });
     const path = url.slice(fixture.baseUrl.length);
-    if (path === `/address/${fixture.address}/history`) return new Response(JSON.stringify(scenario.history), { status: 200 });
+    // Postern recorded the plain /history; the reader now pages /confirmed/history (licence-paging.test.ts), one page here.
+    if (path === `/address/${fixture.address}/confirmed/history`) return new Response(JSON.stringify(scenario.history), { status: 200 });
     if (path === `/address/${fixture.address}/unconfirmed/history`) {
       return new Response(JSON.stringify({ address: fixture.address, script: '', result: scenario.unconfirmed, error: '' }), { status: 200 });
     }
@@ -64,7 +65,8 @@ describe('WhatsOnChainReader against the requests Postern made', () => {
       const delays: number[] = [];
       const reader = new WhatsOnChainReader({ fetch: fetchFn, delay: async (ms) => void delays.push(ms) });
       const found = await findLicence(PUBLIC_KEY_HEX, ['postern', 'spellforge-leaderboard-testnet'], { reader });
-      expect(requests).toEqual(scenario.requests);
+      const confirmedUrl = (url: string) => (url.endsWith('/unconfirmed/history') ? url : url.replace(/\/history$/, '/confirmed/history'));
+      expect(requests).toEqual(scenario.requests.map((request) => ({ ...request, url: confirmedUrl(request.url) })));
       expect(delays).toEqual(scenario.delays);
       expect(found).toEqual(scenario.found);
     });
@@ -83,12 +85,12 @@ describe('WhatsOnChainReader requests', () => {
     const reader = new WhatsOnChainReader({ fetch: fetchFn, baseUrl: 'https://woc.example/v1', delay: async () => {} });
     expect(await reader.getAddressHistory(' addr1 ')).toEqual([{ txid: 'a'.repeat(64), height: 5 }]);
     expect(await reader.getUnconfirmedAddressHistory(' addr1 ')).toEqual([{ txid: 'b'.repeat(64), height: 0 }]);
-    expect(urls).toEqual(['https://woc.example/v1/address/addr1/history', 'https://woc.example/v1/address/addr1/unconfirmed/history']);
+    expect(urls).toEqual(['https://woc.example/v1/address/addr1/confirmed/history', 'https://woc.example/v1/address/addr1/unconfirmed/history']);
   });
 
   it('rejects a body that is not a history, naming the endpoint', async () => {
     const reader = new WhatsOnChainReader({ fetch: (async () => ok({ nope: 1 })) as typeof fetch, delay: async () => {} });
-    await expect(reader.getAddressHistory('addr1')).rejects.toThrow('/address/addr1/history returned an unexpected response shape');
+    await expect(reader.getAddressHistory('addr1')).rejects.toThrow('/address/addr1/confirmed/history returned an unexpected response shape');
   });
 
   it('retries a 429 with a doubling delay, then gives up', async () => {
