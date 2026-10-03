@@ -18,8 +18,9 @@ packages/grist/   @bsv-kit/grist: send grist, poll the answer (imports bsv as 'b
   each: package.json, src/, tests/, README.md, tsconfig.build.json
 tsconfig.base.json  strict settings shared by all
 tsconfig.json       typecheck of src + tests (grist's 'bsv-kit/bsv' resolves to bsv's source; so does vitest)
+examples/door-demo/  Vite page (workspace, not packed) that makes a key, checks a licence and sends a grist; npm run demo
 scripts/consumer-smoke.mjs  installs bsv-kit from a fresh clone into a scratch app (npm run smoke; npm test runs it)
-vitest.config.ts    runs packages/*/tests/**/*.test.ts
+vitest.config.ts    runs packages/*/tests and examples/*/tests (aliases bsv-kit/bsv and bsv-kit/grist to source)
 ```
 
 The root package `bsv-kit` has the entry points `bsv-kit/bsv` and `bsv-kit/grist` (its `exports`

@@ -7,7 +7,8 @@ Shared TypeScript libraries for the Governor's PWAs, lifted from the working cod
 - `@bsv-kit/grist`: send grist with photos, poll the mill's answer. It may use bsv only
   through bsv's public exports; bsv imports nothing from grist, so an app can use bsv alone.
 
-No UI and no DOM live in the libraries; the example page lives under `examples/`.
+No UI and no DOM live in the libraries; the example page lives under `examples/` (see
+[examples/door-demo](examples/door-demo/README.md); `npm run demo` serves it).
 
 ## Install
 
