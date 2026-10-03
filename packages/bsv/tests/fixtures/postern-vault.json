@@ -1,0 +1,38 @@
+[
+  {
+    "mode": "prf",
+    "phrase": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+    "prfSecretHex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+    "keyHex": "1837c1be8e2995ec11cda2b066151be2cfb48adf9e47b151d46adab3a21cdf67",
+    "publicKeyHex": "03d902f35f560e0470c63313c7369168d9d7df2d49bf295fd9fb7cb109ccee0494",
+    "ciphertextHex": "fc787ee43b500852a08815e5d846c774b64fcb38ecc992184989bf2af4ee6c6df4eff989768c169bad47da6032e7b606",
+    "ivHex": "376d91d1835a3dae2ae46acc"
+  },
+  {
+    "mode": "phrase",
+    "phrase": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+    "saltHex": "a0a1a2a3a4a5a6a7a8a9aaabacadaeaf",
+    "keyHex": "1837c1be8e2995ec11cda2b066151be2cfb48adf9e47b151d46adab3a21cdf67",
+    "publicKeyHex": "03d902f35f560e0470c63313c7369168d9d7df2d49bf295fd9fb7cb109ccee0494",
+    "ciphertextHex": "04726abb892a01804803de338b76b920669d6f4e37f55ba8eb35c32c5afcf5741efb75faba54faa35217186033970a98",
+    "ivHex": "20a6cc8f33a013091228767e"
+  },
+  {
+    "mode": "prf",
+    "phrase": "legal winner thank year wave sausage worth useful legal winner thank yellow",
+    "prfSecretHex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+    "keyHex": "7e56ecf5943d79e1f5f87e11c768253d7f3fcf30ae71335611e366c578b4564e",
+    "publicKeyHex": "02c4c9a1e37f5601ed4c7d0eb202e0b55e7891c4787853bef6c3b96a187de12d83",
+    "ciphertextHex": "a67f08cf0c83f07caa7da787e19cc1f5f9bb4af15363ace0e85182b28e874dc38819e761dff539ed8341f5f7b8be2be2",
+    "ivHex": "bd3bc19e0579217add449d1a"
+  },
+  {
+    "mode": "phrase",
+    "phrase": "legal winner thank year wave sausage worth useful legal winner thank yellow",
+    "saltHex": "a0a1a2a3a4a5a6a7a8a9aaabacadaeaf",
+    "keyHex": "7e56ecf5943d79e1f5f87e11c768253d7f3fcf30ae71335611e366c578b4564e",
+    "publicKeyHex": "02c4c9a1e37f5601ed4c7d0eb202e0b55e7891c4787853bef6c3b96a187de12d83",
+    "ciphertextHex": "77b2877796f5c34da089c9ebe4c52a5405e340b855b9db69c36052246f1a7203f46a163f001785e1491cd5d0dc2c499f",
+    "ivHex": "ebcc36b889cca35694e4815e"
+  }
+]

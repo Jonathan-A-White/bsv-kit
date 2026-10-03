@@ -1,0 +1,21 @@
+[
+  {
+    "mode": "prf",
+    "phrase": "letter advice cage absurd amount doctor acoustic avoid letter advice cage above",
+    "prfSecretHex": "fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0efeeedecebeae9e8e7e6e5e4e3e2e1e0",
+    "keyHex": "d7132e62a354e0fc7ea24a5e9f9442f958fe948f067db7ddb9017e34e17660d5",
+    "publicKeyHex": "03d0acccbf665352357dce900e19d75a387369b1c331eb3be605a9719324911371",
+    "ciphertextHex": "d26e82dcb75126f120ff8055e11522a1476b653c7eec35340202e0a26b2600381ca7c1d6911aa0e142b6d5ff00a808ca",
+    "ivHex": "a3881215b3dc508ad17233b0"
+  },
+  {
+    "mode": "phrase",
+    "phrase": "letter advice cage absurd amount doctor acoustic avoid letter advice cage above",
+    "passphrase": "letter advice cage absurd amount doctor acoustic avoid letter advice cage above",
+    "saltHex": "935d50130f6100b0ac6f641bb7eaf0c0",
+    "keyHex": "d7132e62a354e0fc7ea24a5e9f9442f958fe948f067db7ddb9017e34e17660d5",
+    "publicKeyHex": "03d0acccbf665352357dce900e19d75a387369b1c331eb3be605a9719324911371",
+    "ciphertextHex": "93418af30406c047dc61909da8cdf0ca9bddc8222e0fd7ddd36ff0ae9359ddd1f806e474bb4a54fc83e3fd5808e31860",
+    "ivHex": "b8d8d661bd6803849504ba59"
+  }
+]
