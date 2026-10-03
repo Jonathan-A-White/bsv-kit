@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>bsv-kit door demo</title>
+    <style>
+      body { font: 16px/1.4 system-ui, sans-serif; max-width: 40rem; margin: 1rem auto; padding: 0 1rem; }
+      fieldset { margin: 1rem 0; border: 1px solid #aaa; border-radius: 6px; }
+      legend { font-weight: 600; }
+      label { display: block; margin: 0.5rem 0 0.2rem; }
+      input[type='text'], input[type='password'] { width: 100%; box-sizing: border-box; padding: 0.4rem; font: inherit; }
+      button { font: inherit; padding: 0.4rem 0.9rem; margin: 0.5rem 0.4rem 0 0; }
+      .row { display: flex; gap: 0.5rem; }
+      .row > label { flex: 1; }
+      output { display: block; margin-top: 0.6rem; white-space: pre-wrap; word-break: break-all; font-family: ui-monospace, monospace; font-size: 0.9rem; }
+    </style>
+  </head>
+  <body>
+    <h1>bsv-kit door demo</h1>
+
+    <fieldset>
+      <legend>1. Your key</legend>
+      <label for="passphrase">Passphrase</label>
+      <input id="passphrase" type="password" autocomplete="off" />
+      <button id="make" type="button">Make</button>
+      <button id="unlock" type="button">Unlock</button>
+      <button id="forget" type="button">Forget key</button>
+      <output id="key-status"></output>
+      <output id="phrase"></output>
+    </fieldset>
+
+    <fieldset>
+      <legend>2. Public key to be licensed</legend>
+      <input id="pubkey" type="text" readonly aria-label="Public key" />
+      <button id="copy" type="button">Copy</button>
+      <output id="copy-status"></output>
+    </fieldset>
+
+    <fieldset>
+      <legend>3. Licence</legend>
+      <label for="collection">Collection</label>
+      <input id="collection" type="text" value="cairn" />
+      <button id="check" type="button">Check licence</button>
+      <output id="licence-status"></output>
+    </fieldset>
+
+    <fieldset>
+      <legend>4. Send one grist</legend>
+      <label for="backend">Backend (leave empty to use postern.allmymind.org through this page)</label>
+      <input id="backend" type="text" placeholder="" />
+      <div class="row">
+        <label>App <input id="app" type="text" value="cairn" /></label>
+        <label>Kind <input id="kind" type="text" value="sweep" /></label>
+        <label>Version <input id="version" type="text" value="1.1" /></label>
+      </div>
+      <label for="photo">Photo</label>
+      <input id="photo" type="file" accept="image/jpeg,image/png,image/webp" />
+      <button id="send" type="button">Send</button>
+      <button id="stop" type="button" hidden>Stop waiting</button>
+      <output id="send-status"></output>
+      <label for="answer">Answer</label>
+      <output id="answer"></output>
+    </fieldset>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
