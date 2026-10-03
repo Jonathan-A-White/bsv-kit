@@ -1,0 +1,215 @@
+{
+  "keyHex": "1111111111111111111111111111111111111111111111111111111111111111",
+  "publicKeyHex": "034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa",
+  "address": "n4XmX91N5FfccY678vaG1ELNtXh6skVES7",
+  "otherAddress": "mzSomeoneElseAddress",
+  "baseUrl": "https://api.whatsonchain.com/v1/bsv/test",
+  "txids": {
+    "mint": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "transfer": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "unrelated": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "hexes": {
+    "mintPostern": "010000000001000000000000000057006a076e6674676174650102014d0100467b22636f6c6c656374696f6e223a22706f737465726e222c22686f6c646572223a226e34586d5839314e35466663635936373876614731454c4e74586836736b56455337227d00000000",
+    "mintLegacy": "01000000000100000000000000006f006a076e6674676174650102014d01004c5d7b22636f6c6c656374696f6e223a227370656c6c666f7267652d6c6561646572626f6172642d746573746e6574222c22686f6c646572223a226e34586d5839314e35466663635936373876614731454c4e74586836736b56455337227d00000000",
+    "mintOther": "010000000001000000000000000066006a076e6674676174650102014d01004c547b22636f6c6c656374696f6e223a22736f6d652d6f746865722d636f6c6c656374696f6e222c22686f6c646572223a226e34586d5839314e35466663635936373876614731454c4e74586836736b56455337227d00000000",
+    "mintForSomeoneElse": "010000000001000000000000000049006a076e6674676174650102014d0100387b22636f6c6c656374696f6e223a22706f737465726e222c22686f6c646572223a226d7a536f6d656f6e65456c736541646472657373227d00000000",
+    "transferAwayFromB": "01000000000100000000000000007e006a076e667467617465010202545201004c6b7b226f726967696e223a22626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262623a30222c22746f223a226d7a536f6d656f6e65456c736541646472657373227d00000000"
+  },
+  "scenarios": [
+    {
+      "name": "empty history",
+      "history": [],
+      "unconfirmed": [],
+      "hexByTxid": {},
+      "requests": [
+        {
+          "url": "https://api.whatsonchain.com/v1/bsv/test/address/n4XmX91N5FfccY678vaG1ELNtXh6skVES7/history",
+          "method": "GET"
+        },
+        {
+          "url": "https://api.whatsonchain.com/v1/bsv/test/address/n4XmX91N5FfccY678vaG1ELNtXh6skVES7/unconfirmed/history",
+          "method": "GET"
+        }
+      ],
+      "delays": [
+        350
+      ],
+      "found": null
+    },
+    {
+      "name": "a confirmed mint",
+      "history": [
+        {
+          "tx_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "height": 100
+        }
+      ],
+      "unconfirmed": [],
+      "hexByTxid": {
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb": "010000000001000000000000000057006a076e6674676174650102014d0100467b22636f6c6c656374696f6e223a22706f737465726e222c22686f6c646572223a226e34586d5839314e35466663635936373876614731454c4e74586836736b56455337227d00000000"
+      },
+      "requests": [
+        {
+          "url": "https://api.whatsonchain.com/v1/bsv/test/address/n4XmX91N5FfccY678vaG1ELNtXh6skVES7/history",
+          "method": "GET"
+        },
+        {
+          "url": "https://api.whatsonchain.com/v1/bsv/test/address/n4XmX91N5FfccY678vaG1ELNtXh6skVES7/unconfirmed/history",
+          "method": "GET"
+        },
+        {
+          "url": "https://api.whatsonchain.com/v1/bsv/test/tx/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/hex",
+          "method": "GET"
+        }
+      ],
+      "delays": [
+        350,
+        350
+      ],
+      "found": {
+        "txid": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "vout": 0,
+        "collection": "postern"
+      }
+    },
+    {
+      "name": "a confirmed mint, later transferred away (the transfer still in the mempool)",
+      "history": [
+        {
+          "tx_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "height": 100
+        }
+      ],
+      "unconfirmed": [
+        {
+          "tx_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "height": 0
+        }
+      ],
+      "hexByTxid": {
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb": "010000000001000000000000000057006a076e6674676174650102014d0100467b22636f6c6c656374696f6e223a22706f737465726e222c22686f6c646572223a226e34586d5839314e35466663635936373876614731454c4e74586836736b56455337227d00000000",
+        "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd": "01000000000100000000000000007e006a076e667467617465010202545201004c6b7b226f726967696e223a22626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262623a30222c22746f223a226d7a536f6d656f6e65456c736541646472657373227d00000000"
+      },
+      "requests": [
+        {
+          "url": "https://api.whatsonchain.com/v1/bsv/test/address/n4XmX91N5FfccY678vaG1ELNtXh6skVES7/history",
+          "method": "GET"
+        },
+        {
+          "url": "https://api.whatsonchain.com/v1/bsv/test/address/n4XmX91N5FfccY678vaG1ELNtXh6skVES7/unconfirmed/history",
+          "method": "GET"
+        },
+        {
+          "url": "https://api.whatsonchain.com/v1/bsv/test/tx/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/hex",
+          "method": "GET"
+        },
+        {
+          "url": "https://api.whatsonchain.com/v1/bsv/test/tx/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/hex",
+          "method": "GET"
+        }
+      ],
+      "delays": [
+        350,
+        350,
+        350
+      ],
+      "found": null
+    },
+    {
+      "name": "an unrelated transaction, then a mint seen both confirmed and in the mempool",
+      "history": [
+        {
+          "tx_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "height": 90
+        },
+        {
+          "tx_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "height": 100
+        }
+      ],
+      "unconfirmed": [
+        {
+          "tx_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "height": 0
+        }
+      ],
+      "hexByTxid": {
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": "010000000001000000000000000066006a076e6674676174650102014d01004c547b22636f6c6c656374696f6e223a22736f6d652d6f746865722d636f6c6c656374696f6e222c22686f6c646572223a226e34586d5839314e35466663635936373876614731454c4e74586836736b56455337227d00000000",
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb": "010000000001000000000000000057006a076e6674676174650102014d0100467b22636f6c6c656374696f6e223a22706f737465726e222c22686f6c646572223a226e34586d5839314e35466663635936373876614731454c4e74586836736b56455337227d00000000"
+      },
+      "requests": [
+        {
+          "url": "https://api.whatsonchain.com/v1/bsv/test/address/n4XmX91N5FfccY678vaG1ELNtXh6skVES7/history",
+          "method": "GET"
+        },
+        {
+          "url": "https://api.whatsonchain.com/v1/bsv/test/address/n4XmX91N5FfccY678vaG1ELNtXh6skVES7/unconfirmed/history",
+          "method": "GET"
+        },
+        {
+          "url": "https://api.whatsonchain.com/v1/bsv/test/tx/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/hex",
+          "method": "GET"
+        },
+        {
+          "url": "https://api.whatsonchain.com/v1/bsv/test/tx/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/hex",
+          "method": "GET"
+        }
+      ],
+      "delays": [
+        350,
+        350,
+        350
+      ],
+      "found": {
+        "txid": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "vout": 0,
+        "collection": "postern"
+      }
+    },
+    {
+      "name": "a mint whose hex 404s once, as the index lags",
+      "history": [
+        {
+          "tx_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "height": 0
+        }
+      ],
+      "unconfirmed": [],
+      "hexByTxid": {
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb": "010000000001000000000000000057006a076e6674676174650102014d0100467b22636f6c6c656374696f6e223a22706f737465726e222c22686f6c646572223a226e34586d5839314e35466663635936373876614731454c4e74586836736b56455337227d00000000"
+      },
+      "lagOnce": [
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      ],
+      "requests": [
+        {
+          "url": "https://api.whatsonchain.com/v1/bsv/test/address/n4XmX91N5FfccY678vaG1ELNtXh6skVES7/history",
+          "method": "GET"
+        },
+        {
+          "url": "https://api.whatsonchain.com/v1/bsv/test/address/n4XmX91N5FfccY678vaG1ELNtXh6skVES7/unconfirmed/history",
+          "method": "GET"
+        },
+        {
+          "url": "https://api.whatsonchain.com/v1/bsv/test/tx/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/hex",
+          "method": "GET"
+        },
+        {
+          "url": "https://api.whatsonchain.com/v1/bsv/test/tx/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/hex",
+          "method": "GET"
+        }
+      ],
+      "delays": [
+        350,
+        350,
+        1000
+      ],
+      "found": {
+        "txid": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "vout": 0,
+        "collection": "postern"
+      }
+    }
+  ]
+}
