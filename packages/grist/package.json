@@ -1,0 +1,22 @@
+{
+  "name": "@bsv-kit/grist",
+  "version": "0.1.0",
+  "description": "bsv-kit: send grist with photos, poll the mill's answer.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "dependencies": {
+    "@bsv-kit/bsv": "*"
+  }
+}

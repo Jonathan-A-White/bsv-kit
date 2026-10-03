@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@bsv-kit/bsv": ["packages/bsv/src/index.ts"]
+    }
+  },
+  "include": ["packages/*/src", "packages/*/tests", "vitest.config.ts", "eslint.config.js"]
+}

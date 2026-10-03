@@ -1,0 +1,51 @@
+{
+  "name": "bsv-kit",
+  "version": "0.1.0",
+  "description": "Shared TypeScript libraries for the Governor's PWAs: @bsv-kit/bsv (key vault, door client, licence check) and @bsv-kit/grist (send grist, poll the answer).",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jonathan-A-White/bsv-kit.git"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "exports": {
+    "./bsv": {
+      "types": "./packages/bsv/dist/index.d.ts",
+      "default": "./packages/bsv/dist/index.js"
+    },
+    "./grist": {
+      "types": "./packages/grist/dist/index.d.ts",
+      "default": "./packages/grist/dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "packages/*/dist",
+    "packages/*/package.json",
+    "!**/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b packages/bsv/tsconfig.build.json packages/grist/tsconfig.build.json",
+    "prepare": "npm run build",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@bsv/sdk": "^2.2.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^20.19.0",
+    "eslint": "^9.39.1",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.48.0",
+    "vitest": "^4.0.18"
+  }
+}
