@@ -36,3 +36,9 @@ paced and retried as Postern's provider is); `FakeChainReader` is the in-memory 
 its own address history names it holder of the collection and no type-TR record moves that mint away.
 `indexing` means no mint shows yet but `pending` names one broadcast within `graceMs` (default 10
 minutes) - Postern's "licence is on its way" (mw-1589l.24). The app keeps the pending marker and any cache.
+
+A licence an issuer minted to the key (Postern's Issue a licence) is funded by the issuer, so the holder's
+own history never lists it: pass `issuer: <the issuer's public key hex>` and the check also reads the issuer's
+history, counts only a mint the issuer signed and honours the issuer's signed revoke record, as Postern's
+backend does. Without `issuer` only the holder's own history is read. `findLicenceForAddress` is
+`findLicence` for a holder known by testnet address.

@@ -21,6 +21,11 @@ export class FakeChainReader implements ChainReader {
     this.unconfirmed.set(address, [...(this.unconfirmed.get(address) ?? []), { txid, height: 0 }]);
   }
 
+  /** A transaction the reader can give by txid but that no address history lists (a source transaction). */
+  addKnownTransaction(txid: string, hex: string): void {
+    this.hexByTxid.set(txid, hex);
+  }
+
   private assertOnline(): void {
     if (this.offline) throw new Error('the chain is unreachable');
   }
