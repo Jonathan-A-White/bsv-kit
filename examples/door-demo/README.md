@@ -28,7 +28,8 @@ The key is wrapped by your passphrase and kept in this browser's localStorage un
 3. Press **Copy** in section 2. Right looks like: "Copied." Paste it wherever the Governor issues
    licences (a key without a licence is expected to be refused in step 5).
 4. In section 3, leave **Collection** as `cairn` and press **Check licence**. Right looks like one of:
-   "Held: this key holds a licence in "cairn" ...", or "None: this key holds no licence in that
+   "Held: this key holds a licence in "cairn" ..." (also for a licence the Governor issued a moment ago
+   that is not in a block yet), or "None: this key holds no licence in that
    collection ..." for a fresh key.
 5. In section 4, leave **App** `cairn`, **Kind** `sweep`, **Version** `1.1`, choose a JPEG, PNG or
    WebP in **Photo** and press **Send**. Right looks like: "Sent (record ...)" and then "Waiting for the
