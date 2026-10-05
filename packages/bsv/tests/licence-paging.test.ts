@@ -116,6 +116,40 @@ describe('WhatsOnChainReader confirmed history paging', () => {
     expect(urls.at(-1)).toBe(`${BASE}/address/${ADDRESS}/unconfirmed/history`);
   });
 
+  // WhatsOnChain answers 404 'Not Found' on /confirmed/history for an address it has never seen; Postern
+  // (confirmedHistory.ts, missingIsEmpty) reads that as no history.
+  it('reads a 404 on the first page of the confirmed history as an empty history', async () => {
+    const urls: string[] = [];
+    const fetchFn = (async (input: string | URL) => {
+      const url = String(input);
+      urls.push(url);
+      if (url.endsWith('/unconfirmed/history')) return new Response(JSON.stringify({ address: ADDRESS, script: '', result: [], error: '' }), { status: 200 });
+      return new Response('Not Found', { status: 404 });
+    }) as typeof fetch;
+    const reader = new WhatsOnChainReader({ baseUrl: BASE, fetch: fetchFn, delay: async () => {} });
+    expect(await reader.getAddressHistory(ADDRESS)).toEqual([]);
+    expect(await licenceStatus(PUBLIC_KEY_HEX, 'cairn', { reader })).toMatchObject({ state: 'none' });
+    expect(await hasLicence(PUBLIC_KEY_HEX, 'cairn', { reader })).toBe(false);
+  });
+
+  it('still fails on a 404 for a later page of the confirmed history', async () => {
+    const fetchFn = (async (input: string | URL) =>
+      String(input).includes('?token=')
+        ? new Response('Not Found', { status: 404 })
+        : new Response(JSON.stringify({ result: [{ tx_hash: txidOf(1), height: 1 }], nextPageToken: 'p2' }), { status: 200 })) as typeof fetch;
+    const reader = new WhatsOnChainReader({ baseUrl: BASE, fetch: fetchFn, delay: async () => {} });
+    await expect(reader.getAddressHistory(ADDRESS)).rejects.toThrow('404');
+  });
+
+  it('still fails on a 404 for the unconfirmed history', async () => {
+    const reader = new WhatsOnChainReader({
+      baseUrl: BASE,
+      fetch: (async () => new Response('Not Found', { status: 404 })) as typeof fetch,
+      delay: async () => {},
+    });
+    await expect(reader.getUnconfirmedAddressHistory(ADDRESS)).rejects.toThrow('404');
+  });
+
   it('names the error WhatsOnChain gives for a page', async () => {
     const reader = new WhatsOnChainReader({
       baseUrl: BASE,

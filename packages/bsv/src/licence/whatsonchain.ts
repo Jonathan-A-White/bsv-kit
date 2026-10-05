@@ -82,7 +82,15 @@ export class WhatsOnChainReader implements ChainReader {
         throw new ChainError(`The history of ${address.trim()} runs past ${MAX_HISTORY_PAGES} pages, more than can be read here.`);
       }
       await this.waitForRequestSlot();
-      const page = await this.historyPage(path, token);
+      let page: { rows: HistoryRow[]; nextPageToken?: string };
+      try {
+        page = await this.historyPage(path, token);
+      } catch (error) {
+        // WhatsOnChain answers a 404 on the first page for an address it has never seen: no history, as
+        // Postern's confirmedHistory.ts reads it. A 404 on a later page stays an error.
+        if (pages.length === 0 && error instanceof ChainError && error.status === 404) return [];
+        throw error;
+      }
       pages.push(page.rows);
       if (!page.nextPageToken) break;
       token = page.nextPageToken;
