@@ -90,6 +90,25 @@ console.log('sendGrist reached the door and posted:', txid);
   // 5. 'bsv-kit/bsv' on its own, in a process that never names grist.
   writeFileSync(join(app, 'bsv-only.mjs'), `import { door, vault, licence } from 'bsv-kit/bsv';\nif (!door.Door || !vault.generate || !licence.hasLicence) throw new Error('bsv exports missing');\nconsole.log('bsv alone imports');\n`);
   console.log(run('node', ['bsv-only.mjs'], app).trim());
+
+  // 6. 'bsv-kit/testing' resolves, and its fake Postern takes a grist and an answer.
+  writeFileSync(
+    join(app, 'testing.mjs'),
+    `
+import { door } from 'bsv-kit/bsv';
+import { grist } from 'bsv-kit/grist';
+import { fakePostern } from 'bsv-kit/testing';
+
+const fake = fakePostern();
+const d = new door.Door({ baseUrl: fake.base, key: fake.appKey, fetch: fake.fetch });
+const sent = await grist.sendGristRecord({ door: d, key: fake.appKey, app: 'cairn', kind: 'sweep', v: '1.1', input: {}, attachments: [{ bytes: Uint8Array.of(1), mime: 'audio/webm', name: 'clip.webm' }] });
+fake.reply({ re: sent.txid, status: 'answered', answer: {}, grind: { app: 'cairn', kind: 'sweep', v: '1.1' } });
+const page = await grist.readAnswerPage(sent.txid, { door: d, key: fake.appKey, mill: sent.mill, since: 0 });
+if (page.answer?.status !== 'answered') throw new Error('no answer from the fake');
+console.log('bsv-kit/testing imports');
+`,
+  );
+  console.log(run('node', ['testing.mjs'], app).trim());
   console.log('consumer smoke test passed');
 } catch (err) {
   console.error(String(err?.stderr ?? '') || err);

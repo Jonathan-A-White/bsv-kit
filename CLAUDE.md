@@ -24,8 +24,9 @@ scripts/consumer-smoke.mjs  installs bsv-kit from a fresh clone into a scratch a
 vitest.config.ts    runs packages/*/tests and examples/*/tests (aliases bsv-kit/bsv and bsv-kit/grist to source)
 ```
 
-The root package `bsv-kit` has the entry points `bsv-kit/bsv` and `bsv-kit/grist` (its `exports`
-point at each package's `dist`), and `prepare` runs the build (bsv first), so installing from
+The root package `bsv-kit` has the entry points `bsv-kit/bsv`, `bsv-kit/grist` and `bsv-kit/testing` (the
+grist tests' fake Postern, test-only, `packages/grist/src/testing.ts`); its `exports`
+point at each package's `dist`, and `prepare` runs the build (bsv first), so installing from
 GitHub by commit (or by tag, once one exists) works.
 
 ## Conventions

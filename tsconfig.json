@@ -6,7 +6,8 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
-      "bsv-kit/bsv": ["packages/bsv/src/index.ts"]
+      "bsv-kit/bsv": ["packages/bsv/src/index.ts"],
+      "bsv-kit/testing": ["packages/grist/src/testing.ts"]
     }
   },
   "include": ["packages/*/src", "packages/*/tests", "vitest.config.ts", "eslint.config.js"]
