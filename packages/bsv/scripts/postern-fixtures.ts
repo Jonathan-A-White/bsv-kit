@@ -1,7 +1,7 @@
 // One-off: makes and checks the vault fixtures with POSTERN's own code (src/services/vault.ts).
 // Not part of the build or the tests (neither tsconfig includes scripts/). Run it with Postern's tsx:
 //
-//   POSTERN_DIR=/home/jwhite/postern
+//   POSTERN_DIR=<postern-checkout>
 //   (cd $POSTERN_DIR && npx tsx <bsv-kit>/packages/bsv/scripts/postern-fixtures.ts generate) \
 //     > packages/bsv/tests/fixtures/postern-vault.json
 //   (cd $POSTERN_DIR && npx tsx <bsv-kit>/packages/bsv/scripts/postern-fixtures.ts verify \
@@ -12,14 +12,13 @@
 // verify: reads blobs bsv-kit made (see make-bsvkit-fixtures.ts) and unwraps each with Postern's
 //   unwrapKey; exits non-zero unless every one gives the recorded key.
 import { readFileSync } from 'node:fs';
-import {
-  deriveAesKeyFromPhrase,
-  deriveAesKeyFromPrf,
-  deriveMasterKey,
-  publicKeyHexFromMasterKey,
-  unwrapKey,
-  wrapKey,
-} from '/home/jwhite/postern/src/services/vault.ts';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+// Postern's checkout: POSTERN_DIR, or the current directory (run these from the Postern checkout).
+const POSTERN = resolve(process.env.POSTERN_DIR ?? process.cwd());
+const postern = (path: string) => import(pathToFileURL(resolve(POSTERN, path)).href);
+const { deriveAesKeyFromPhrase, deriveAesKeyFromPrf, deriveMasterKey, publicKeyHexFromMasterKey, unwrapKey, wrapKey } = await postern('src/services/vault.ts');
 
 const hex = (b: ArrayBuffer | Uint8Array): string => Buffer.from(b instanceof Uint8Array ? b : new Uint8Array(b)).toString('hex');
 const bytes = (h: string): Uint8Array => new Uint8Array(Buffer.from(h, 'hex'));

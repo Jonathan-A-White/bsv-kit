@@ -4,13 +4,19 @@
 // WhatsOnChain, with the answer findLicence gave. Not part of the build or the tests (neither tsconfig
 // includes scripts/). Run it with Postern's tsx:
 //
-//   (cd /home/jwhite/postern && npx tsx <bsv-kit>/packages/bsv/scripts/postern-licence-fixture.ts) \
+//   (cd <postern-checkout> && npx tsx <bsv-kit>/packages/bsv/scripts/postern-licence-fixture.ts) \
 //     > packages/bsv/tests/fixtures/postern-licence.json
 import { PrivateKey } from '@bsv/sdk';
-import { WhatsOnChainProvider, chainConfig } from '/home/jwhite/postern/node_modules/spell-forge-bsv/dist/index.js';
-import { findLicence } from '/home/jwhite/postern/src/services/licence.ts';
-import { COCKPIT_COLLECTION, LEGACY_LICENCE_COLLECTION } from '/home/jwhite/postern/src/services/collections.ts';
-import { mintRecordTxHex, transferRecordTxHex } from '/home/jwhite/postern/tests/support/nftgate-fixtures.ts';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+// Postern's checkout: POSTERN_DIR, or the current directory (run these from the Postern checkout).
+const POSTERN = resolve(process.env.POSTERN_DIR ?? process.cwd());
+const postern = (path: string) => import(pathToFileURL(resolve(POSTERN, path)).href);
+const { WhatsOnChainProvider, chainConfig } = await postern('node_modules/spell-forge-bsv/dist/index.js');
+const { findLicence } = await postern('src/services/licence.ts');
+const { COCKPIT_COLLECTION, LEGACY_LICENCE_COLLECTION } = await postern('src/services/collections.ts');
+const { mintRecordTxHex, transferRecordTxHex } = await postern('tests/support/nftgate-fixtures.ts');
 
 const KEY = PrivateKey.fromHex('11'.repeat(32));
 const PUBLIC_KEY_HEX = KEY.toPublicKey().toString();

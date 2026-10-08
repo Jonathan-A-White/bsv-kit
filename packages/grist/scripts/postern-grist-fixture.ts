@@ -5,14 +5,20 @@
 // (copied beside it as postern-grist-vectors.json). Not part of the build or the tests (neither tsconfig
 // includes scripts/). Run it with Postern's tsx:
 //
-//   (cd /home/jwhite/postern && npx tsx <bsv-kit>/packages/grist/scripts/postern-grist-fixture.ts) \
+//   (cd <postern-checkout> && npx tsx <bsv-kit>/packages/grist/scripts/postern-grist-fixture.ts) \
 //     > packages/grist/tests/fixtures/postern-grist.json
 import { readFileSync } from 'node:fs';
-import { Utils } from '/home/jwhite/postern/node_modules/@bsv/sdk/dist/esm/mod.js';
-import { encodeRecordScript } from '/home/jwhite/postern/node_modules/spell-forge-bsv/dist/index.js';
-import { encryptAttachment, encryptMessage } from '/home/jwhite/postern/src/services/messages.ts';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
-const vectors = JSON.parse(readFileSync('/home/jwhite/postern/docs/fixtures/grist-vectors.json', 'utf-8'));
+// Postern's checkout: POSTERN_DIR, or the current directory (run these from the Postern checkout).
+const POSTERN = resolve(process.env.POSTERN_DIR ?? process.cwd());
+const postern = (path: string) => import(pathToFileURL(resolve(POSTERN, path)).href);
+const { Utils } = await postern('node_modules/@bsv/sdk/dist/esm/mod.js');
+const { encodeRecordScript } = await postern('node_modules/spell-forge-bsv/dist/index.js');
+const { encryptAttachment, encryptMessage } = await postern('src/services/messages.ts');
+
+const vectors = JSON.parse(readFileSync(resolve(POSTERN, 'docs/fixtures/grist-vectors.json'), 'utf-8'));
 const { mill, cairnPhone } = vectors.keys;
 const TS = 1790000000;
 const script = (payload: unknown): string => encodeRecordScript(Utils.toArray(JSON.stringify(payload), 'utf8')).toHex();

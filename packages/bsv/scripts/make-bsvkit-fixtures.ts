@@ -1,7 +1,7 @@
 // One-off: makes wrapped-key blobs with BSV-KIT's vault.wrap, for Postern to unwrap
 // (postern-fixtures.ts verify). Run from the Postern checkout with its tsx, as that script says:
 //
-//   (cd /home/jwhite/postern && npx tsx <bsv-kit>/packages/bsv/scripts/make-bsvkit-fixtures.ts) \
+//   (cd <postern-checkout> && npx tsx <bsv-kit>/packages/bsv/scripts/make-bsvkit-fixtures.ts) \
 //     > packages/bsv/tests/fixtures/bsvkit-vault.json
 import { vault } from '../src/index.js';
 

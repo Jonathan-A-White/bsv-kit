@@ -4,10 +4,16 @@
 // string body, a POST with a binary body. The top-level authorization/requests are the first case's.
 // Not part of the build or the tests (neither tsconfig includes scripts/). Run it with Postern's tsx:
 //
-//   (cd /home/jwhite/postern && npx tsx <bsv-kit>/packages/bsv/scripts/postern-door-fixture.ts) \
+//   (cd <postern-checkout> && npx tsx <bsv-kit>/packages/bsv/scripts/postern-door-fixture.ts) \
 //     > packages/bsv/tests/fixtures/postern-door.json
-import { apiFetch } from '/home/jwhite/postern/src/services/apiAuth.ts';
-import { publicKeyHexFromMasterKey } from '/home/jwhite/postern/src/services/vault.ts';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+// Postern's checkout: POSTERN_DIR, or the current directory (run these from the Postern checkout).
+const POSTERN = resolve(process.env.POSTERN_DIR ?? process.cwd());
+const postern = (path: string) => import(pathToFileURL(resolve(POSTERN, path)).href);
+const { apiFetch } = await postern('src/services/apiAuth.ts');
+const { publicKeyHexFromMasterKey } = await postern('src/services/vault.ts');
 
 const KEY_HEX = '0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20';
 const NONCE = '00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff';
