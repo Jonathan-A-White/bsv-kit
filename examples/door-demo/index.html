@@ -41,13 +41,15 @@
       <legend>3. Licence</legend>
       <label for="collection">Collection</label>
       <input id="collection" type="text" value="cairn" />
+      <label for="issuer">Issuer public key (optional: finds a licence that key issued)</label>
+      <input id="issuer" type="text" />
       <button id="check" type="button">Check licence</button>
       <output id="licence-status"></output>
     </fieldset>
 
     <fieldset>
       <legend>4. Send one grist</legend>
-      <label for="backend">Backend (leave empty to use postern.allmymind.org through this page)</label>
+      <label for="backend">Backend (leave empty to use the backend named in DEMO_BACKEND through this page)</label>
       <input id="backend" type="text" placeholder="" />
       <div class="row">
         <label>App <input id="app" type="text" value="cairn" /></label>

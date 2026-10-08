@@ -4,7 +4,6 @@ import { grist } from 'bsv-kit/grist';
 import { browserStorage, forgetKey, hasStoredKey, makeKey, unlockKey } from './keys.js';
 import type { UnlockedKey } from './keys.js';
 import { DEFAULTS, readPhoto, sweepInput } from './request.js';
-import { ISSUER_PUBLIC_KEY } from './issuer.js';
 import { describeAnswer, describeError, describeLicence } from './text.js';
 
 function el<T extends HTMLElement>(id: string): T {
@@ -16,6 +15,8 @@ const input = (id: string): HTMLInputElement => el<HTMLInputElement>(id);
 const say = (id: string, text: string): void => {
   el(id).textContent = text;
 };
+
+input('issuer').value = __DEMO_ISSUER__;
 
 const storage = browserStorage();
 let unlocked: UnlockedKey | null = null;
@@ -78,7 +79,7 @@ el('check').addEventListener('click', () =>
     const collection = input('collection').value.trim();
     if (!collection) throw new Error('Type a collection first.');
     say('licence-status', 'Asking the chain ...');
-    say('licence-status', describeLicence(await licence.licenceStatus(unlocked.publicKeyHex, collection, { issuer: ISSUER_PUBLIC_KEY })));
+    say('licence-status', describeLicence(await licence.licenceStatus(unlocked.publicKeyHex, collection, { issuer: input('issuer').value.trim() || undefined })));
   }),
 );
 
