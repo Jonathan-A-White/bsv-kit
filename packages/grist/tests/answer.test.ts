@@ -154,3 +154,65 @@ describe('awaitAnswer', () => {
     await expect(awaitAnswer(TXID, opts(d))).rejects.toThrow(/500/);
   });
 });
+
+describe('readAnswerPage', () => {
+  const page = (d: InstanceType<typeof door.Door>, since: number, extra: object = {}) =>
+    grist.readAnswerPage(TXID, { door: d, key: PHONE_KEY, mill: MILL.publicKeyHex, since, ...extra });
+
+  it('returns null and the cursor while pending, then the answer, across two calls', async () => {
+    const { backend, d } = setup();
+    backend.records = [answerRecord('answered', 1, { class: 'message' })];
+    const first = await page(d, 0);
+    expect(first).toEqual({ answer: null, next: 1 });
+    backend.records = [...backend.records, answerRecord('answered', 2)];
+    const second = await page(d, first.next);
+    expect(second.answer).toEqual(fixture.answers.answered.plaintext);
+    expect(second.next).toBe(2);
+    expect(backend.seen.filter((s) => s.path.startsWith('/messages?since=')).map((s) => s.path)).toEqual(['/messages?since=0', '/messages?since=1']);
+  });
+
+  it('makes one request, and none to /api/me when the mill is given', async () => {
+    const { backend, d } = setup();
+    await page(d, 0);
+    expect(backend.polls()).toBe(1);
+    expect(backend.seen.map((s) => s.path)).toEqual(['/messages?since=0']);
+  });
+
+  it('never moves the cursor back', async () => {
+    const { d } = setup();
+    expect(await page(d, 9)).toEqual({ answer: null, next: 9 });
+  });
+
+  it('resolves a refused answer too, and asks /api/me for the mill when none is given', async () => {
+    const { backend, d } = setup();
+    backend.records = [answerRecord('refused', 1)];
+    const { answer } = await grist.readAnswerPage(TXID, { door: d, key: PHONE_KEY, since: 0 });
+    expect(answer?.status).toBe('refused');
+    expect(backend.seen.map((s) => s.path)).toContain('/me');
+  });
+
+  it('ignores a record that is not the answer, as awaitAnswer does', async () => {
+    const { backend, d } = setup();
+    backend.records = [answerRecord('answered', 1, { signer: PHONE.publicKeyHex }), answerRecord('answered', 2, { ct: 'not base64 at all!' })];
+    expect(await page(d, 0)).toEqual({ answer: null, next: 2 });
+  });
+
+  it('lets a backend failure through, and rejects with AwaitAbortedError when the signal aborts', async () => {
+    const { d } = setup();
+    d.fetch = async () => new Response('{}', { status: 500 });
+    await expect(page(d, 0)).rejects.toThrow(/500/);
+    await expect(page(d, 0, { signal: AbortSignal.abort() })).rejects.toBeInstanceOf(grist.AwaitAbortedError);
+  });
+
+  it('carries the optional reading_result of an answer', async () => {
+    const { backend, d } = setup();
+    const withReading = { ...fixture.answers.answered.plaintext, reading_result: { score: 0.9 } };
+    const { EncryptedMessage, PrivateKey, Utils } = await import('@bsv/sdk');
+    const ct = Utils.toBase64(
+      EncryptedMessage.encrypt(Utils.toArray(JSON.stringify(withReading), 'utf8'), PrivateKey.fromHex(MILL.privateKeyHex), PrivateKey.fromHex(PHONE.privateKeyHex).toPublicKey()),
+    );
+    backend.records = [answerRecord('answered', 1, { ct })];
+    const { answer } = await page(d, 0);
+    expect(answer?.reading_result).toEqual({ score: 0.9 });
+  });
+});

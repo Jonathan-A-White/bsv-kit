@@ -88,26 +88,55 @@ function pause(ms: number, signal: AbortSignal | undefined): Promise<void> {
   });
 }
 
+export interface ReadAnswerPageOptions {
+  /** The door the call goes through (its key is the app's). */
+  door: Door;
+  /** The app's raw 32-byte key: what opens the answer. */
+  key: Uint8Array;
+  /** The cursor from the last page (`next`); 0 reads from the start. */
+  since: number;
+  /** The pinned mill key (sendGristRecord names it); asked of GET /api/me when absent. */
+  mill?: string;
+  /** Stops the call: the promise rejects with an AwaitAbortedError. */
+  signal?: AbortSignal;
+}
+
+/**
+ * Reads ONE page of GET /api/messages after `since`: the mill's answer to the grist `txid`, or `null` when this
+ * page holds none, and the cursor to pass next time (never below `since`). For an app that keeps `txid`, `mill` and
+ * the cursor itself (in IndexedDB, say) and polls on its own schedule. A `refused` or `failed` answer comes back
+ * too. Rejects with an AwaitAbortedError when the signal aborts, and with the door's error if the backend fails.
+ */
+export async function readAnswerPage<A = unknown>(txid: string, options: ReadAnswerPageOptions): Promise<{ answer: GristAnswer<A> | null; next: number }> {
+  const { door: d, key, signal } = options;
+  if (signal?.aborted) throw new AwaitAbortedError();
+  const mill = options.mill ?? (await fetchMill(d));
+  const mine = vault.publicKeyHexFromKey(key);
+  const body = await page(d, options.since, signal);
+  let next = Math.max(options.since, body.next ?? 0);
+  for (const row of body.records ?? []) {
+    const answer = answerIn<A>(row, key, mine, mill, txid);
+    if (answer) return { answer, next };
+    next = Math.max(next, row.seq ?? 0);
+  }
+  return { answer: null, next };
+}
+
 /**
  * Resolves with the mill's answer to the grist `txid` (`direct:…`): its record whose `re` is that id. A `refused` or
  * `failed` answer resolves too, for the caller to read `status` and `reason`. Rejects with an AwaitAbortedError
  * when the signal aborts, and with the door's error if the backend fails.
  */
 export async function awaitAnswer<A = unknown>(txid: string, options: AwaitAnswerOptions): Promise<GristAnswer<A>> {
-  const { door: d, key, signal } = options;
+  const { door: d, signal } = options;
   const intervalMs = options.intervalMs ?? POLL_INTERVAL_MS;
   if (signal?.aborted) throw new AwaitAbortedError();
   const mill = options.mill ?? (await fetchMill(d));
-  const mine = vault.publicKeyHexFromKey(key);
   let since = 0;
   for (;;) {
-    const body = await page(d, since, signal);
-    for (const row of body.records ?? []) {
-      const answer = answerIn<A>(row, key, mine, mill, txid);
-      if (answer) return answer;
-      since = Math.max(since, row.seq ?? 0);
-    }
-    since = Math.max(since, body.next ?? 0);
+    const result = await readAnswerPage<A>(txid, { door: d, key: options.key, since, mill, signal });
+    if (result.answer) return result.answer;
+    since = result.next;
     await pause(intervalMs, signal);
   }
 }
