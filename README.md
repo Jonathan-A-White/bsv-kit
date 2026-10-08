@@ -12,10 +12,19 @@ No UI and no DOM live in the libraries; the example page lives under `examples/`
 
 ## Install
 
-From GitHub, by tag (there is no registry; `prepare` builds both packages on install):
+From GitHub, pinned to a commit (there is no registry and no tag yet; tags come later, and the line
+becomes `#vX.Y.Z`). `prepare` builds both packages on install:
 
 ```bash
-npm install github:Jonathan-A-White/bsv-kit#v0.1.0
+npm install github:Jonathan-A-White/bsv-kit#20077847f5af718c83d9912f935f644a2cbbe2b0
+```
+
+npm 11 warns that `bsv-kit` has an install script (`prepare`, the build) not yet covered by
+`allowScripts`. Allow it with `npm install-scripts approve bsv-kit`, which adds an entry to your
+`package.json` keyed by the install line, for example:
+
+```json
+"allowScripts": { "github:Jonathan-A-White/bsv-kit#20077847f5af718c83d9912f935f644a2cbbe2b0": true }
 ```
 
 ```ts
