@@ -186,3 +186,112 @@ describe('sendGrist: what it will not send', () => {
     );
   });
 });
+
+const MIB = 1024 * 1024;
+const audio = (bytes: number, mime = 'audio/webm', name?: string) => ({ bytes: new Uint8Array(bytes).fill(7), mime, ...(name !== undefined ? { name } : {}) });
+
+describe('sendGrist: attachments (audio, names)', () => {
+  it('sends an audio/webm attachment with a name: the fake sees the upload, the record lists mime and name', async () => {
+    const { backend, d } = setup();
+    const clip = audio(2048, 'audio/webm', 'reading.webm');
+    await sendGrist({ door: d, key: PHONE_KEY, app: 'spellforge', kind: 'tutor-turn', v: '1', input: INPUT, attachments: [clip] });
+    const uploads = backend.seen.filter((s) => s.path === '/blobs');
+    expect(uploads).toHaveLength(1);
+    const opened = EncryptedMessage.decrypt(Array.from(uploads[0].body!), PrivateKey.fromHex(MILL.privateKeyHex));
+    expect(Uint8Array.from(opened)).toEqual(clip.bytes);
+    const plain = decryptAsMill(postedEnvelope(backend.seen).envelope.ct as string) as { attachments: unknown[] };
+    expect(plain.attachments).toEqual([{ hash: '1'.padStart(64, 'b'), size: uploads[0].body!.length, mime: 'audio/webm', name: 'reading.webm' }]);
+    expect(Object.keys(plain.attachments[0] as object)).toEqual(['hash', 'size', 'mime', 'name']);
+  });
+
+  it('accepts audio/ogg and audio/mp4, and drops a codec suffix from the mime', async () => {
+    const { backend, d } = setup();
+    await sendGrist({ door: d, key: PHONE_KEY, app: 'spellforge', kind: 'tutor-turn', v: '1', input: INPUT, attachments: [audio(10, 'audio/ogg'), audio(10, 'audio/mp4'), audio(10, 'audio/webm;codecs=opus')] });
+    const plain = decryptAsMill(postedEnvelope(backend.seen).envelope.ct as string) as { attachments: { mime: string }[] };
+    expect(plain.attachments.map((a) => a.mime)).toEqual(['audio/ogg', 'audio/mp4', 'audio/webm']);
+  });
+
+  it('puts no name on the wire when none is given, and names a photo too', async () => {
+    const { backend, d } = setup();
+    await sendGrist({ door: d, key: PHONE_KEY, app: 'cairn', kind: 'sweep', v: '1.1', input: INPUT, photos: [{ ...photo(1), name: 'drawer.jpg' }, photo(2)] });
+    const plain = decryptAsMill(postedEnvelope(backend.seen).envelope.ct as string) as { attachments: Record<string, unknown>[] };
+    expect(plain.attachments[0]).toMatchObject({ mime: 'image/jpeg', name: 'drawer.jpg' });
+    expect(Object.keys(plain.attachments[1])).toEqual(['hash', 'size', 'mime']);
+  });
+
+  it('keeps photos first, then attachments, in the order given', async () => {
+    const { backend, d } = setup();
+    await sendGrist({ door: d, key: PHONE_KEY, app: 'spellforge', kind: 'tutor-turn', v: '1', input: INPUT, photos: [photo(1)], attachments: [audio(10), photo(2, 'image/png')] });
+    const plain = decryptAsMill(postedEnvelope(backend.seen).envelope.ct as string) as { attachments: { mime: string }[] };
+    expect(plain.attachments.map((a) => a.mime)).toEqual(['image/jpeg', 'audio/webm', 'image/png']);
+  });
+
+  it('refuses a 9 MiB audio clip with GristInputError before anything is sent, and takes exactly 8 MiB', async () => {
+    const { backend, d } = setup();
+    await expect(
+      sendGrist({ door: d, key: PHONE_KEY, app: 'spellforge', kind: 'tutor-turn', v: '1', input: INPUT, attachments: [audio(9 * MIB)] }),
+    ).rejects.toBeInstanceOf(grist.GristInputError);
+    expect(backend.seen).toEqual([]);
+    expect(grist.MAX_AUDIO_BYTES).toBe(8 * MIB);
+    const ok = setup();
+    await sendGrist({ door: ok.d, key: PHONE_KEY, app: 'spellforge', kind: 'tutor-turn', v: '1', input: INPUT, attachments: [audio(8 * MIB)] });
+    expect(ok.backend.seen.filter((s) => s.path === '/blobs')).toHaveLength(1);
+  });
+
+  it('caps all the audio of a grist together at 8 MiB', async () => {
+    const { backend, d } = setup();
+    await expect(
+      sendGrist({ door: d, key: PHONE_KEY, app: 'spellforge', kind: 'tutor-turn', v: '1', input: INPUT, attachments: [audio(5 * MIB), audio(5 * MIB, 'audio/ogg')] }),
+    ).rejects.toBeInstanceOf(grist.GristInputError);
+    expect(backend.seen).toEqual([]);
+  });
+
+  it('refuses a type no attachment may be, more than 4 files across photos and attachments, and a bad name', async () => {
+    for (const bad of [
+      { attachments: [audio(10, 'audio/wav')] },
+      { attachments: [audio(10, 'video/mp4')] },
+      { photos: [photo(1), photo(2)], attachments: [photo(3), photo(4), audio(10)] },
+      { attachments: [audio(10, 'audio/webm', 'a/b.webm')] },
+      { attachments: [audio(10, 'audio/webm', '')] },
+      { photos: [{ ...photo(1), name: '..\\x.jpg' }] },
+    ]) {
+      const { backend, d } = setup();
+      await expect(
+        sendGrist({ door: d, key: PHONE_KEY, app: 'spellforge', kind: 'tutor-turn', v: '1', input: INPUT, ...bad }),
+      ).rejects.toBeInstanceOf(grist.GristInputError);
+      expect(backend.seen).toEqual([]);
+    }
+  });
+
+  it('a photo given as an attachment is held to the photo cap', async () => {
+    const { backend, d } = setup();
+    await expect(
+      sendGrist({ door: d, key: PHONE_KEY, app: 'spellforge', kind: 'tutor-turn', v: '1', input: INPUT, attachments: [{ bytes: new Uint8Array(grist.MAX_PHOTO_BYTES + 1), mime: 'image/png' }] }),
+    ).rejects.toBeInstanceOf(grist.GristInputError);
+    expect(backend.seen).toEqual([]);
+  });
+});
+
+describe('sendGristRecord', () => {
+  it('returns txid, seq and mill from the backend and the pinned mill key', async () => {
+    const { backend, d } = setup();
+    backend.postResult = { txid: `direct:${'c'.repeat(64)}`, seq: 42 };
+    const sent = await grist.sendGristRecord({ door: d, key: PHONE_KEY, app: 'cairn', kind: 'sweep', v: '1.1', input: INPUT, photos: [] });
+    expect(sent).toEqual({ txid: `direct:${'c'.repeat(64)}`, seq: 42, mill: MILL.publicKeyHex });
+  });
+
+  it('names the mill it was given without asking /api/me, and sendGrist still returns the bare txid', async () => {
+    const { backend, d } = setup();
+    const sent = await grist.sendGristRecord({ door: d, key: PHONE_KEY, app: 'cairn', kind: 'sweep', v: '1.1', input: INPUT, photos: [], mill: MILL.publicKeyHex });
+    expect(sent).toEqual({ txid: `direct:${'a'.repeat(64)}`, seq: 1, mill: MILL.publicKeyHex });
+    expect(backend.seen.map((s) => s.path)).not.toContain('/me');
+    const txid = await sendGrist({ door: d, key: PHONE_KEY, app: 'cairn', kind: 'sweep', v: '1.1', input: INPUT, photos: [] });
+    expect(txid).toBe(`direct:${'a'.repeat(64)}`);
+  });
+
+  it('refuses a backend that names no seq', async () => {
+    const { backend, d } = setup();
+    backend.postResult = { txid: `direct:${'c'.repeat(64)}` };
+    await expect(grist.sendGristRecord({ door: d, key: PHONE_KEY, app: 'cairn', kind: 'sweep', v: '1.1', input: INPUT, photos: [] })).rejects.toThrow(/seq/);
+  });
+});
