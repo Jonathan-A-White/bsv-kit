@@ -36,7 +36,8 @@
     "prepare": "npm run build",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p examples/door-demo/tsconfig.json --noEmit",
-    "test": "vitest run",
+    "test": "npm run check:personal && vitest run",
+    "check:personal": "node scripts/check-personal.mjs",
     "smoke": "node scripts/consumer-smoke.mjs",
     "demo": "npm run dev --workspace door-demo"
   },
