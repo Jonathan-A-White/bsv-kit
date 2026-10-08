@@ -17,7 +17,7 @@ const res = await d.fetch('/messages?since=0'); // GET /api/messages?since=0, si
 ```
 
 `fetch(path)` takes the part after `/api`. With a key, each call fetches a fresh nonce from
-`GET /api/challenge`, signs it, and sends `Authorization: Postern <pubkey>:<nonce>:<sig>`; a nonce
+`GET /api/challenge`, signs the whole request with it (method, request target, body sha256, nonce: Postern's v2 message) and sends `Authorization: Postern2 <pubkey>:<nonce>:<sig>`; a nonce
 refusal is retried once. Failures are typed: `ApiTimeoutError`, `BackendUnreachableError`,
 `RefusedError` (`isPermanentRefusal`), and `NoLicenceError` from `me()`. `baseUrl`, `key` and
 `fetch` (and `timeoutMs`) are inputs; nothing reads the page or the browser.

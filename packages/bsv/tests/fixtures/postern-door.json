@@ -1,8 +1,9 @@
 {
+  "source": "Postern src/services/apiAuth.ts apiFetch (Postern2), via packages/bsv/scripts/postern-door-fixture.ts",
   "keyHex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
   "publicKeyHex": "0284bf7562262bbd6940085748f3be6afa52ae317155181ece31b66351ccffa4b0",
   "nonce": "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
-  "authorization": "Postern 0284bf7562262bbd6940085748f3be6afa52ae317155181ece31b66351ccffa4b0:00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff:304502210089a6249c7982aa75946979fef1a8914bafe37b2ef976c541a2acb03f9edccd0d022016eb1f2dbf9c0fa047db1e8aa5e5370e1e8d14cb95fdde62e1becadec2fadcf9",
+  "authorization": "Postern2 0284bf7562262bbd6940085748f3be6afa52ae317155181ece31b66351ccffa4b0:00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff:3044022015893d2cbf32604f9d986e995c40a5b515033798908f4cc9f983be375993db020220105b0e15bce1054377b9241236e1c0d8d01e22eaa700c1ddf9293ac37ca38bcf",
   "requests": [
     {
       "url": "/api/challenge",
@@ -12,7 +13,65 @@
     {
       "url": "/api/messages?since=0",
       "method": "GET",
-      "authorization": "Postern 0284bf7562262bbd6940085748f3be6afa52ae317155181ece31b66351ccffa4b0:00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff:304502210089a6249c7982aa75946979fef1a8914bafe37b2ef976c541a2acb03f9edccd0d022016eb1f2dbf9c0fa047db1e8aa5e5370e1e8d14cb95fdde62e1becadec2fadcf9"
+      "authorization": "Postern2 0284bf7562262bbd6940085748f3be6afa52ae317155181ece31b66351ccffa4b0:00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff:3044022015893d2cbf32604f9d986e995c40a5b515033798908f4cc9f983be375993db020220105b0e15bce1054377b9241236e1c0d8d01e22eaa700c1ddf9293ac37ca38bcf"
+    }
+  ],
+  "cases": [
+    {
+      "name": "GET with a query",
+      "path": "/messages?since=0",
+      "method": "GET",
+      "authorization": "Postern2 0284bf7562262bbd6940085748f3be6afa52ae317155181ece31b66351ccffa4b0:00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff:3044022015893d2cbf32604f9d986e995c40a5b515033798908f4cc9f983be375993db020220105b0e15bce1054377b9241236e1c0d8d01e22eaa700c1ddf9293ac37ca38bcf",
+      "requests": [
+        {
+          "url": "/api/challenge",
+          "method": "GET",
+          "authorization": null
+        },
+        {
+          "url": "/api/messages?since=0",
+          "method": "GET",
+          "authorization": "Postern2 0284bf7562262bbd6940085748f3be6afa52ae317155181ece31b66351ccffa4b0:00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff:3044022015893d2cbf32604f9d986e995c40a5b515033798908f4cc9f983be375993db020220105b0e15bce1054377b9241236e1c0d8d01e22eaa700c1ddf9293ac37ca38bcf"
+        }
+      ]
+    },
+    {
+      "name": "POST with a JSON body",
+      "path": "/messages",
+      "method": "POST",
+      "body": "{\"to\":\"mill\",\"text\":\"héllo ✓\"}",
+      "authorization": "Postern2 0284bf7562262bbd6940085748f3be6afa52ae317155181ece31b66351ccffa4b0:00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff:3044022014859bf5f258ccdcff8c3ac4e568ab75915070c1e0e54d80e411e175958f3ca902200cd705704afcdae2e67aa5235f3f6ef3db94a1b5a31c4f384fcedb1b761d9f53",
+      "requests": [
+        {
+          "url": "/api/challenge",
+          "method": "GET",
+          "authorization": null
+        },
+        {
+          "url": "/api/messages",
+          "method": "POST",
+          "authorization": "Postern2 0284bf7562262bbd6940085748f3be6afa52ae317155181ece31b66351ccffa4b0:00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff:3044022014859bf5f258ccdcff8c3ac4e568ab75915070c1e0e54d80e411e175958f3ca902200cd705704afcdae2e67aa5235f3f6ef3db94a1b5a31c4f384fcedb1b761d9f53"
+        }
+      ]
+    },
+    {
+      "name": "POST with a binary body",
+      "path": "/blobs",
+      "method": "POST",
+      "bodyHex": "00ff10809f7e0001",
+      "authorization": "Postern2 0284bf7562262bbd6940085748f3be6afa52ae317155181ece31b66351ccffa4b0:00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff:3045022100e9e504478c0e11cc729b58f1371efa4c419a2f154413762de8535398fd8c55c9022010ec9e9e695bbbbe91f4fb2e7dc187af2b5073f48c84ee0902d138f0bdf7433d",
+      "requests": [
+        {
+          "url": "/api/challenge",
+          "method": "GET",
+          "authorization": null
+        },
+        {
+          "url": "/api/blobs",
+          "method": "POST",
+          "authorization": "Postern2 0284bf7562262bbd6940085748f3be6afa52ae317155181ece31b66351ccffa4b0:00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff:3045022100e9e504478c0e11cc729b58f1371efa4c419a2f154413762de8535398fd8c55c9022010ec9e9e695bbbbe91f4fb2e7dc187af2b5073f48c84ee0902d138f0bdf7433d"
+        }
+      ]
     }
   ]
 }

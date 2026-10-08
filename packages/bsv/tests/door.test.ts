@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { PrivateKey, PublicKey, Signature } from '@bsv/sdk';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { door } from '../src/index.js';
@@ -20,33 +21,91 @@ type Fetch = typeof fetch;
 const asFetch = (f: unknown): Fetch => f as Fetch;
 const callsOf = (f: { mock: { calls: unknown[][] } }): [string | URL, RequestInit | undefined][] => f.mock.calls as [string | URL, RequestInit | undefined][];
 
-describe('Door.fetch: the signed header', () => {
-  it('is, byte for byte, the header Postern makes for the same key and nonce', async () => {
-    const fetchImpl = vi.fn(async (url: string | URL) => (isChallenge(url) ? challenge() : json({})));
-    const d = new Door({ baseUrl: BASE, key: KEY, fetch: asFetch(fetchImpl) });
-    await d.fetch('/messages?since=0');
-    const sent = callsOf(fetchImpl).map(([url, init]) => ({
-      url: String(url),
-      method: init?.method ?? 'GET',
-      authorization: new Headers(init?.headers).get('Authorization'),
-    }));
-    // The fixture's urls are Postern's, whose api base is "/api"; here the base is the backend's.
-    expect(sent.map((r) => ({ ...r, url: r.url.replace(BASE, '') }))).toEqual(fixture.requests);
-    expect(sent[1].authorization).toBe(fixture.authorization);
-  });
+const bodyOf = (c: { body?: string; bodyHex?: string }): string | Uint8Array | undefined =>
+  c.bodyHex !== undefined ? fromHex(c.bodyHex) : c.body;
 
-  it('carries a signature the backend can verify', async () => {
+describe('Door.fetch: the signed header', () => {
+  // Vectors made by Postern's own apiFetch (src/services/apiAuth.ts, Postern2): scripts/postern-door-fixture.ts.
+  for (const c of fixture.cases) {
+    it(`is, byte for byte, the header Postern makes for the same key, nonce and request: ${c.name}`, async () => {
+      const fetchImpl = vi.fn(async (url: string | URL) => (isChallenge(url) ? challenge() : json({})));
+      const d = new Door({ baseUrl: BASE, key: KEY, fetch: asFetch(fetchImpl) });
+      await d.fetch(c.path, c.method === 'GET' ? undefined : { method: c.method, body: bodyOf(c) });
+      const sent = callsOf(fetchImpl).map(([url, init]) => ({
+        url: String(url),
+        method: init?.method ?? 'GET',
+        authorization: new Headers(init?.headers).get('Authorization'),
+      }));
+      // The fixture's urls are Postern's, whose api base is "/api"; here the base is the backend's.
+      expect(sent.map((r) => ({ ...r, url: r.url.replace(BASE, '') }))).toEqual(c.requests);
+      expect(sent[1].authorization).toBe(c.authorization);
+      expect(sent[1].authorization?.startsWith('Postern2 ')).toBe(true);
+    });
+  }
+
+  it('carries a signature the backend can verify over the v2 message, for a GET and a POST with a body', async () => {
     const key = PrivateKey.fromRandom();
-    const seen: string[] = [];
+    const seen: { authorization: string; method: string; url: string }[] = [];
     const fetchImpl = vi.fn(async (url: string | URL, init?: RequestInit) => {
       if (isChallenge(url)) return challenge();
-      seen.push(new Headers(init?.headers).get('Authorization') ?? '');
+      seen.push({ authorization: new Headers(init?.headers).get('Authorization') ?? '', method: init?.method ?? 'GET', url: String(url) });
       return json({});
     });
-    await new Door({ baseUrl: BASE, key: new Uint8Array(Buffer.from(key.toHex(), 'hex')), fetch: asFetch(fetchImpl) }).fetch('/x');
-    const [, pub, nonce, sig] = seen[0].match(/^Postern ([0-9a-f]+):([0-9a-f]+):([0-9a-f]+)$/)!;
-    expect(pub).toBe(key.toPublicKey().toString());
-    expect(PublicKey.fromString(pub).verify(nonce, Signature.fromDER(sig, 'hex'))).toBe(true);
+    const d = new Door({ baseUrl: BASE, key: new Uint8Array(Buffer.from(key.toHex(), 'hex')), fetch: asFetch(fetchImpl) });
+    await d.fetch('/x?a=1&b=%20');
+    await d.fetch('/y', { method: 'post', body: '{"k":"v"}' });
+    const sha = (s: string): string => createHash('sha256').update(s).digest('hex');
+    const expected = [
+      ['GET', '/api/x?a=1&b=%20', sha('')],
+      ['POST', '/api/y', sha('{"k":"v"}')],
+    ];
+    seen.forEach((s, i) => {
+      const [, pub, nonce, sig] = s.authorization.match(/^Postern2 ([0-9a-f]+):([0-9a-f]+):([0-9a-f]+)$/)!;
+      expect(pub).toBe(key.toPublicKey().toString());
+      const [method, target, bodyHash] = expected[i];
+      const message = `postern-v2\n${method}\n${target}\n${bodyHash}\n${nonce}`;
+      expect(PublicKey.fromString(pub).verify(message, Signature.fromDER(sig, 'hex'))).toBe(true);
+      // A v1 proof (the nonce alone) is not what is signed.
+      expect(PublicKey.fromString(pub).verify(nonce, Signature.fromDER(sig, 'hex'))).toBe(false);
+    });
+  });
+
+  it('never sends the v1 scheme, on a first try or a retry', async () => {
+    let challenges = 0;
+    const auths: string[] = [];
+    const fetchImpl = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      if (isChallenge(url)) return challenge(String(++challenges).repeat(64));
+      auths.push(new Headers(init?.headers).get('Authorization') ?? '');
+      return auths.length === 1 ? refusal('nonce') : json({});
+    });
+    await new Door({ baseUrl: BASE, key: KEY, fetch: asFetch(fetchImpl) }).fetch('/a', { method: 'POST', body: 'x' });
+    expect(auths).toHaveLength(2);
+    for (const a of auths) expect(a.startsWith('Postern2 ')).toBe(true);
+  });
+
+  it('signs the same body hash on the retry, with a fresh nonce', async () => {
+    let challenges = 0;
+    const auths: string[] = [];
+    const fetchImpl = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      if (isChallenge(url)) return challenge(String(++challenges).repeat(64));
+      auths.push(new Headers(init?.headers).get('Authorization') ?? '');
+      return auths.length === 1 ? refusal('nonce') : json({});
+    });
+    await new Door({ baseUrl: BASE, key: KEY, fetch: asFetch(fetchImpl) }).fetch('/a', { method: 'POST', body: 'x' });
+    const pub = PublicKey.fromString(fixture.publicKeyHex);
+    auths.forEach((a, i) => {
+      const [, , nonce, sig] = a.match(/^Postern2 ([0-9a-f]+):([0-9a-f]+):([0-9a-f]+)$/)!;
+      expect(nonce).toBe(String(i + 1).repeat(64));
+      const message = `postern-v2\nPOST\n/api/a\n${createHash('sha256').update('x').digest('hex')}\n${nonce}`;
+      expect(pub.verify(message, Signature.fromDER(sig, 'hex'))).toBe(true);
+    });
+  });
+
+  it('refuses a body of a kind it cannot sign, before anything is sent', async () => {
+    const fetchImpl = vi.fn(async () => json({}));
+    const d = new Door({ baseUrl: BASE, key: KEY, fetch: asFetch(fetchImpl) });
+    await expect(d.fetch('/a', { method: 'POST', body: new URLSearchParams({ a: '1' }) })).rejects.toThrow('cannot be signed');
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 
   it('signs a fresh nonce for every call, and keeps the caller\'s own headers and method', async () => {
@@ -282,7 +341,9 @@ describe('Door.me', () => {
     expect(got).toEqual(me);
     const [url, init] = callsOf(fetchImpl)[1];
     expect(String(url)).toBe(`${BASE}/api/me`);
-    expect(new Headers(init?.headers).get('Authorization')).toBe(fixture.authorization);
+    const [, , nonce, sig] = new Headers(init?.headers).get('Authorization')!.match(/^Postern2 ([0-9a-f]+):([0-9a-f]+):([0-9a-f]+)$/)!;
+    const message = `postern-v2\nGET\n/api/me\n${createHash('sha256').update('').digest('hex')}\n${nonce}`;
+    expect(PublicKey.fromString(fixture.publicKeyHex).verify(message, Signature.fromDER(sig, 'hex'))).toBe(true);
   });
 
   it('fills the gaps Postern fills, and drops what is not a string or a collection', async () => {
