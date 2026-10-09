@@ -1,7 +1,7 @@
 # bsv-kit
 
 Shared TypeScript libraries for the Governor's PWAs, lifted from the working code in
-[Postern](https://github.com/Jonathan-A-White/postern). One repo, three separate libraries:
+[Postern](https://github.com/Jonathan-A-White/postern). One repo, four separate libraries:
 
 - `@bsv-kit/bsv`: key vault, door client for signed Postern API calls, licence check.
 - `@bsv-kit/grist`: send grist with photos and recordings, poll the mill's answer (and a one-page read
@@ -9,8 +9,14 @@ Shared TypeScript libraries for the Governor's PWAs, lifted from the working cod
   through bsv's public exports; bsv imports nothing from grist, so an app can use bsv alone.
 - `@bsv-kit/tips`: a list of one-time tips, which one to show now, and dismissed for good, through a
   storage the app injects. It imports nothing from bsv or grist.
+- `@bsv-kit/composer`: Postern's message composer, a React component: hold to talk with the words shown as they
+  are heard, slide off to keep them unsent, quiet attach and camera, 'Type a message'; speak-first or
+  type-first; themed by CSS custom properties. It imports nothing from bsv, grist or tips. See
+  [packages/composer](packages/composer/README.md).
 
-No UI and no DOM live in the libraries; the example page lives under `examples/` (see
+No UI and no DOM live in bsv, grist or tips; the composer is the one UI library, and needs React 18 or later
+(`react`, `react-dom`: optional peer dependencies, so an app that does not use it needs no React). The example
+page lives under `examples/` (see
 [examples/door-demo](examples/door-demo/README.md); `npm run demo` serves it).
 
 ## Install
@@ -34,6 +40,8 @@ npm 11 warns that `bsv-kit` has an install script (`prepare`, the build) not yet
 import { vault, door, licence } from 'bsv-kit/bsv';
 import { grist } from 'bsv-kit/grist';
 import { tips } from 'bsv-kit/tips';
+import { Composer } from 'bsv-kit/composer'; // a React component
+import 'bsv-kit/composer/styles.css'; // its default look, themed by --bk-composer-* properties
 import { fakePostern } from 'bsv-kit/testing'; // in tests only: a fake Postern behind a fetch
 ```
 
@@ -49,6 +57,7 @@ Postern's wire formats are the law; each module is lifted from the Postern file 
 | `bsv-kit/grist`  | `grist`   | send grist with photos, poll the answer      | `send.ts`, `attachments.ts`, `talk.ts`         |
 | `bsv-kit/tips`   | `tips`    | one-time tips, dismissed for good            | (new; not from Postern)                        |
 | `bsv-kit/testing`| `fakePostern` | TEST-ONLY fake backend for an app's tests | (the grist tests' own fake)                    |
+| `bsv-kit/composer` | `Composer`, `useHold`, ... | the hold-to-talk message composer (React) | `listen.ts`, `micInput.ts`, `recorder.ts`; and `src/cockpit/`: `Composer.tsx`, `HoldToTalkBar.tsx`, `useHold.ts` |
 
 All namespaces are stubs until their stories land.
 
@@ -68,6 +77,11 @@ Runtime libraries (installed with the libraries):
 - [@scure/bip39](https://github.com/paulmillr/scure-bip39): BIP-39 recovery words for the key vault in `@bsv-kit/bsv`, by
   Paul Miller. Licence: [MIT](https://github.com/paulmillr/scure-bip39/blob/main/LICENSE). No changes.
 
+Runtime libraries the app brings (peer dependencies of the composer only):
+
+- [React](https://react.dev): `react` and `react-dom`, the UI library `@bsv-kit/composer` is written for (18 or later). Licence:
+  [MIT](https://github.com/facebook/react/blob/main/LICENSE). No changes.
+
 Outside services:
 
 - [WhatsOnChain](https://whatsonchain.com): the block explorer API that the licence check reads transactions from. Licence:
@@ -81,12 +95,17 @@ Tools used to build and test (not installed by apps):
 - [ESLint](https://eslint.org): the linter. Licence: [MIT](https://github.com/eslint/eslint/blob/main/LICENSE). No changes.
 - [Vite](https://vite.dev): serves and builds the example page under `examples/`. Licence:
   [MIT](https://github.com/vitejs/vite/blob/main/LICENSE). No changes.
+- [Testing Library](https://testing-library.com): `@testing-library/react` and `@testing-library/dom` render the composer
+  in its tests. Licence: [MIT](https://github.com/testing-library/react-testing-library/blob/main/LICENSE). No changes.
+- [jsdom](https://github.com/jsdom/jsdom): the page the composer's tests run in. Licence:
+  [MIT](https://github.com/jsdom/jsdom/blob/main/LICENSE.txt). No changes.
 
 Projects and ideas we took:
 
 - [Postern](https://github.com/Jonathan-A-White/postern): the code and wire formats here are lifted from Postern's working code, which is
   the law for them. Licence: [MIT](https://github.com/Jonathan-A-White/postern/blob/main/LICENSE). Adapted into separate libraries with
-  no UI, no DOM and injected storage.
+  no UI, no DOM and injected storage, but for the composer, which keeps Postern's UI and its tests and leaves Postern's own
+  parts (threads, drafts, saved prompts) in Postern.
 - [Beads](https://github.com/steveyegge/beads): Steve Yegge's issue tracker for AI agents; the work on this repo is tracked in it.
   Licence: [MIT](https://github.com/steveyegge/beads/blob/main/LICENSE). Used as published.
 - [Gas Town](https://github.com/steveyegge/gastown): Steve Yegge's idea of a factory of coordinating agent roles, which shaped how
