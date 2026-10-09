@@ -1,0 +1,23 @@
+{
+  "name": "@bsv-kit/composer",
+  "version": "0.1.0",
+  "description": "bsv-kit: Postern's message composer as a React component: hold to talk with the words shown as they are heard, slide off to keep them unsent, quiet attach and camera, Type a message; speak-first or type-first; themed by CSS custom properties.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  }
+}

@@ -11,5 +11,6 @@
       "bsv-kit/testing": ["packages/grist/src/testing.ts"]
     }
   },
-  "include": ["packages/*/src", "packages/*/tests", "vitest.config.ts", "eslint.config.js"]
+  "include": ["packages/*/src", "packages/*/tests", "vitest.config.ts", "eslint.config.js"],
+  "exclude": ["packages/composer", "**/dist"]
 }
