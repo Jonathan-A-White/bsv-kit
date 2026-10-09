@@ -36,6 +36,7 @@
       "types": "./packages/composer/dist/index.d.ts",
       "default": "./packages/composer/dist/index.js"
     },
+    "./composer/styles.css": "./packages/composer/dist/styles.css",
     "./package.json": "./package.json"
   },
   "files": [
@@ -44,7 +45,7 @@
     "!**/*.tsbuildinfo"
   ],
   "scripts": {
-    "build": "tsc -b packages/bsv/tsconfig.build.json packages/grist/tsconfig.build.json packages/tips/tsconfig.build.json packages/composer/tsconfig.build.json",
+    "build": "tsc -b packages/bsv/tsconfig.build.json packages/grist/tsconfig.build.json packages/tips/tsconfig.build.json packages/composer/tsconfig.build.json && node -e \"require('node:fs').copyFileSync('packages/composer/src/styles.css', 'packages/composer/dist/styles.css')\"",
     "prepare": "npm run build",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p packages/composer/tsconfig.json --noEmit && tsc -p examples/door-demo/tsconfig.json --noEmit",

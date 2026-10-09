@@ -10,11 +10,15 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    }
+    },
+    "./styles.css": "./dist/styles.css"
   },
   "files": [
     "dist/**",
     "!**/*.tsbuildinfo"
+  ],
+  "sideEffects": [
+    "*.css"
   ],
   "peerDependencies": {
     "react": ">=18",
