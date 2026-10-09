@@ -1,7 +1,7 @@
 # bsv-kit
 
 Shared TypeScript libraries for the Governor's PWAs, lifted from the working code in
-[Postern](https://github.com/Jonathan-A-White/postern). One repo, five separate libraries:
+[Postern](https://github.com/Jonathan-A-White/postern). One repo, six separate libraries:
 
 - `@bsv-kit/bsv`: key vault, door client for signed Postern API calls, licence check.
 - `@bsv-kit/grist`: send grist with photos and recordings, poll the mill's answer (and a one-page read
