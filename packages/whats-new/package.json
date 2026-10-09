@@ -1,0 +1,27 @@
+{
+  "name": "@bsv-kit/whats-new",
+  "version": "0.1.0",
+  "description": "bsv-kit: every app's What's new as a React package: the Update ready banner's summary, a one-time What's new sheet after an update, the versions list for About, a Check for updates button and the version link to CHANGELOG.md on GitHub; themed by CSS custom properties.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./styles.css": "./dist/styles.css"
+  },
+  "files": [
+    "dist/**",
+    "!**/*.tsbuildinfo"
+  ],
+  "sideEffects": [
+    "*.css"
+  ],
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  }
+}
