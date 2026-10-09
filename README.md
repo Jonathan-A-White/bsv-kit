@@ -52,6 +52,48 @@ Postern's wire formats are the law; each module is lifted from the Postern file 
 
 All namespaces are stubs until their stories land.
 
+## Credits
+
+> "If I have seen further it is by standing on the shoulders of Giants."
+> Isaac Newton, letter to Robert Hooke, 1675
+
+bsv-kit stands on the work below. Each credit gives what it is used for, its licence and any changes made. None of it is
+changed by us: we use each as published.
+
+Runtime libraries (installed with the libraries):
+
+- [@bsv/sdk](https://github.com/bsv-blockchain/ts-stack/tree/main/packages/sdk): the BSV TypeScript SDK; keys, signatures, transactions and
+  the token checks behind the key vault, the door's signed calls and the licence check in `@bsv-kit/bsv` and `@bsv-kit/grist`.
+  Licence: [Open BSV License version 4](https://github.com/bsv-blockchain/ts-stack/blob/main/packages/sdk/LICENSE.txt). No changes.
+- [@scure/bip39](https://github.com/paulmillr/scure-bip39): BIP-39 recovery words for the key vault in `@bsv-kit/bsv`, by
+  Paul Miller. Licence: [MIT](https://github.com/paulmillr/scure-bip39/blob/main/LICENSE). No changes.
+
+Outside services:
+
+- [WhatsOnChain](https://whatsonchain.com): the block explorer API that the licence check reads transactions from. Licence:
+  [terms of use](https://whatsonchain.com/terms-of-use) of its public API. Nothing is copied from it.
+
+Tools used to build and test (not installed by apps):
+
+- [TypeScript](https://github.com/microsoft/TypeScript): the language and compiler. Licence:
+  [Apache-2.0](https://github.com/microsoft/TypeScript/blob/main/LICENSE.txt). No changes.
+- [Vitest](https://vitest.dev): runs the tests. Licence: [MIT](https://github.com/vitest-dev/vitest/blob/main/LICENSE). No changes.
+- [ESLint](https://eslint.org): the linter. Licence: [MIT](https://github.com/eslint/eslint/blob/main/LICENSE). No changes.
+- [Vite](https://vite.dev): serves and builds the example page under `examples/`. Licence:
+  [MIT](https://github.com/vitejs/vite/blob/main/LICENSE). No changes.
+
+Projects and ideas we took:
+
+- [Postern](https://github.com/Jonathan-A-White/postern): the code and wire formats here are lifted from Postern's working code, which is
+  the law for them. Licence: [MIT](https://github.com/Jonathan-A-White/postern/blob/main/LICENSE). Adapted into separate libraries with
+  no UI, no DOM and injected storage.
+- [Beads](https://github.com/steveyegge/beads): Steve Yegge's issue tracker for AI agents; the work on this repo is tracked in it.
+  Licence: [MIT](https://github.com/steveyegge/beads/blob/main/LICENSE). Used as published.
+- [Gas Town](https://github.com/steveyegge/gastown): Steve Yegge's idea of a factory of coordinating agent roles, which shaped how
+  this repo is built. Licence: [MIT](https://github.com/steveyegge/gastown/blob/main/LICENSE). We took the idea, not its code.
+- [Claude Code](https://www.anthropic.com/claude-code): Anthropic's coding agent, which writes the code in this repo under the
+  Governor's direction. Licence: [commercial terms](https://www.anthropic.com/legal/commercial-terms). Used as a tool.
+
 ## Develop
 
 ```bash

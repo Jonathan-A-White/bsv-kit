@@ -21,6 +21,7 @@ tsconfig.base.json  strict settings shared by all
 tsconfig.json       typecheck of src + tests (grist's 'bsv-kit/bsv' resolves to bsv's source; so does vitest)
 examples/door-demo/  Vite page (workspace, not packed) that makes a key, checks a licence and sends a grist; npm run demo
 scripts/check-personal.mjs  fails on a personal host, home path or public key in a tracked file (npm run check:personal)
+scripts/credits.mjs  the README's Credits check: opens with Newton's line, every credit has a link-text name and a licence link, every package.json dependency is credited (adding a library means crediting it in the same commit)
 scripts/consumer-smoke.mjs  installs bsv-kit from a fresh clone into a scratch app (npm run smoke; npm test runs it)
 vitest.config.ts    runs packages/*/tests and examples/*/tests (aliases bsv-kit/bsv, bsv-kit/grist and bsv-kit/tips to source)
 ```
