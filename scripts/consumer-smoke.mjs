@@ -1,7 +1,8 @@
 // The consumer smoke test: installs bsv-kit the way an app does, `npm install git+file://<a fresh clone>`,
 // into a scratch directory, and checks from there what a git install must deliver:
 //   - 'bsv-kit/grist' imports and sendGrist (which reaches bsv's door) sends a grist to a fake backend;
-//   - 'bsv-kit/bsv' alone imports, and its import graph holds no grist file.
+//   - 'bsv-kit/bsv' alone imports, and its import graph holds no grist file;
+//   - 'bsv-kit/tips' imports and keeps a dismissal.
 // The "fresh clone" is the working tree as it stands (tracked and untracked files, minus what git ignores),
 // committed into a scratch repository, so an edit not yet committed is smoke-tested too.
 // Run: npm run smoke   (needs the network or a warm npm cache: the install runs the build with devDependencies)
@@ -109,6 +110,22 @@ console.log('bsv-kit/testing imports');
 `,
   );
   console.log(run('node', ['testing.mjs'], app).trim());
+  // 7. 'bsv-kit/tips' resolves and keeps a dismissal through an injected storage.
+  writeFileSync(
+    join(app, 'tips.mjs'),
+    `
+import { tips } from 'bsv-kit/tips';
+
+const data = new Map();
+const storage = { getItem: (k) => data.get(k) ?? null, setItem: (k, v) => void data.set(k, v) };
+const t = tips.createTips({ tips: [{ id: 'one', text: 'A tip.', event: 'opened' }], storage });
+if ((await t.nextTip('opened'))?.id !== 'one') throw new Error('tip not shown');
+await t.dismiss('one');
+if ((await t.nextTip('opened')) !== null) throw new Error('tip shown after dismiss');
+console.log('bsv-kit/tips imports');
+`,
+  );
+  console.log(run('node', ['tips.mjs'], app).trim());
   console.log('consumer smoke test passed');
 } catch (err) {
   console.error(String(err?.stderr ?? '') || err);

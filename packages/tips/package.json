@@ -1,0 +1,19 @@
+{
+  "name": "@bsv-kit/tips",
+  "version": "0.2.0",
+  "description": "bsv-kit: a list of one-time tips, which one to show now, and dismissed for good, through an injected storage.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist/**",
+    "!**/*.tsbuildinfo"
+  ]
+}

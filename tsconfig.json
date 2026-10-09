@@ -7,6 +7,7 @@
     "baseUrl": ".",
     "paths": {
       "bsv-kit/bsv": ["packages/bsv/src/index.ts"],
+      "bsv-kit/tips": ["packages/tips/src/index.ts"],
       "bsv-kit/testing": ["packages/grist/src/testing.ts"]
     }
   },
