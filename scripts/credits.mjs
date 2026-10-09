@@ -35,7 +35,7 @@ export function allDependencies() {
   return dependencyNames(['dependencies', 'devDependencies']);
 }
 
-const FONT_OR_DATA = /\.(woff2?|ttf|otf|eot|csv|tsv|sqlite3?|db)$/i;
+const FONT_OR_DATA = /\.(woff2?|ttf|otf|eot|csv|tsv|sqlite3?|db|wav)$/i;
 const SKIPPED_DIRS = new Set(['node_modules', 'dist', '.git', 'coverage']);
 
 /** Repo-relative paths of the font and data files the repo bundles (not node_modules, dist or tests/fixtures), sorted. */

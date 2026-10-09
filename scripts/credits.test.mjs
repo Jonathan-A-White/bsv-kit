@@ -118,6 +118,7 @@ describe('fonts and data files', () => {
     for (const file of [
       'public/fonts/Inter.woff2',
       'public/data/words.csv',
+      'packages/b/clips/english.wav',
       'node_modules/x/y.ttf',
       'packages/a/dist/z.otf',
       'packages/a/tests/fixtures/vector.csv',
@@ -126,7 +127,7 @@ describe('fonts and data files', () => {
       mkdirSync(join(root, file, '..'), { recursive: true });
       writeFileSync(join(root, file), 'x');
     }
-    expect(shippedAssets(root)).toEqual(['public/data/words.csv', 'public/fonts/Inter.woff2']);
+    expect(shippedAssets(root)).toEqual(['packages/b/clips/english.wav', 'public/data/words.csv', 'public/fonts/Inter.woff2']);
   });
 
   it('passes when each file, or the folder it is in, is named by a font or data credit', () => {
