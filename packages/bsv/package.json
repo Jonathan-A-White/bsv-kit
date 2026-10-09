@@ -1,6 +1,6 @@
 {
   "name": "@bsv-kit/bsv",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "bsv-kit: key vault, door client for signed Postern API calls, licence check.",
   "license": "MIT",
   "type": "module",

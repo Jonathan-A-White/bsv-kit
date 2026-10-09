@@ -15,16 +15,17 @@ All must pass clean before a story is done. Node 20+. A fresh worktree needs `np
 ```
 packages/bsv/     @bsv-kit/bsv: vault, door, licence (runtime dependencies: @bsv/sdk, @scure/bip39)
 packages/grist/   @bsv-kit/grist: send grist, poll the answer (imports bsv as 'bsv-kit/bsv', the name a consumer resolves)
+packages/tips/    @bsv-kit/tips: one-time tips, which one to show now, dismissed for good (injected storage; imports nothing from bsv or grist)
   each: package.json, src/, tests/, README.md, tsconfig.build.json
 tsconfig.base.json  strict settings shared by all
 tsconfig.json       typecheck of src + tests (grist's 'bsv-kit/bsv' resolves to bsv's source; so does vitest)
 examples/door-demo/  Vite page (workspace, not packed) that makes a key, checks a licence and sends a grist; npm run demo
 scripts/check-personal.mjs  fails on a personal host, home path or public key in a tracked file (npm run check:personal)
 scripts/consumer-smoke.mjs  installs bsv-kit from a fresh clone into a scratch app (npm run smoke; npm test runs it)
-vitest.config.ts    runs packages/*/tests and examples/*/tests (aliases bsv-kit/bsv and bsv-kit/grist to source)
+vitest.config.ts    runs packages/*/tests and examples/*/tests (aliases bsv-kit/bsv, bsv-kit/grist and bsv-kit/tips to source)
 ```
 
-The root package `bsv-kit` has the entry points `bsv-kit/bsv`, `bsv-kit/grist` and `bsv-kit/testing` (the
+The root package `bsv-kit` has the entry points `bsv-kit/bsv`, `bsv-kit/grist`, `bsv-kit/tips` and `bsv-kit/testing` (the
 grist tests' fake Postern, test-only, `packages/grist/src/testing.ts`); its `exports`
 point at each package's `dist`, and `prepare` runs the build (bsv first), so installing from
 GitHub by commit (or by tag, once one exists) works.
@@ -33,7 +34,7 @@ GitHub by commit (or by tag, once one exists) works.
 
 - Formats are Postern's: never change a wire format without a fixture from Postern. The code is
   lifted from Postern's src/services.
-- One repo, two separate libraries. grist may use bsv only through its public exports; bsv imports
+- One repo, three separate libraries (tips stands alone: `packages/tips/tests/dependency-rule.test.ts`). grist may use bsv only through its public exports; bsv imports
   nothing from grist (`packages/bsv/tests/dependency-rule.test.ts`). An app must be able to import
   bsv alone.
 - No UI and no DOM (`window`, `document`, `navigator`) inside the libraries; the example page lives

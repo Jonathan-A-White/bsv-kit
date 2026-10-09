@@ -1,7 +1,7 @@
 {
   "name": "bsv-kit",
-  "version": "0.1.0",
-  "description": "Shared TypeScript libraries for the Governor's PWAs: @bsv-kit/bsv (key vault, door client, licence check) and @bsv-kit/grist (send grist, poll the answer).",
+  "version": "0.2.0",
+  "description": "Shared TypeScript libraries for the Governor's PWAs: @bsv-kit/bsv (key vault, door client, licence check) and @bsv-kit/grist (send grist, poll the answer) and @bsv-kit/tips (one-time tips, dismissed for good).",
   "license": "MIT",
   "type": "module",
   "repository": {
@@ -24,6 +24,10 @@
       "types": "./packages/grist/dist/index.d.ts",
       "default": "./packages/grist/dist/index.js"
     },
+    "./tips": {
+      "types": "./packages/tips/dist/index.d.ts",
+      "default": "./packages/tips/dist/index.js"
+    },
     "./testing": {
       "types": "./packages/grist/dist/testing.d.ts",
       "default": "./packages/grist/dist/testing.js"
@@ -36,7 +40,7 @@
     "!**/*.tsbuildinfo"
   ],
   "scripts": {
-    "build": "tsc -b packages/bsv/tsconfig.build.json packages/grist/tsconfig.build.json",
+    "build": "tsc -b packages/bsv/tsconfig.build.json packages/grist/tsconfig.build.json packages/tips/tsconfig.build.json",
     "prepare": "npm run build",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p examples/door-demo/tsconfig.json --noEmit",
