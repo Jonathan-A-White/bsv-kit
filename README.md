@@ -99,8 +99,10 @@ Tools used to build and test (not installed by apps):
 - [ESLint](https://eslint.org): the linter. Licence: [MIT](https://github.com/eslint/eslint/blob/main/LICENSE). No changes. Kind: package.
 - [Vite](https://vite.dev): serves and builds the example page under `examples/`. Licence:
   [MIT](https://github.com/vitejs/vite/blob/main/LICENSE). No changes. Kind: package.
-- [Testing Library](https://testing-library.com): `@testing-library/react` and `@testing-library/dom` render the composer
-  in its tests. Licence: [MIT](https://github.com/testing-library/react-testing-library/blob/main/LICENSE). No changes. Kind: package.
+- [@testing-library/react](https://testing-library.com/docs/react-testing-library/intro): renders the composer in its
+  tests. Licence: [MIT](https://github.com/testing-library/react-testing-library/blob/main/LICENSE). No changes. Kind: package.
+- [@testing-library/dom](https://testing-library.com/docs/dom-testing-library/intro): finds what the composer's tests
+  render. Licence: [MIT](https://github.com/testing-library/dom-testing-library/blob/main/LICENSE). No changes. Kind: package.
 - [jsdom](https://github.com/jsdom/jsdom): the page the composer's tests run in. Licence:
   [MIT](https://github.com/jsdom/jsdom/blob/main/LICENSE.txt). No changes. Kind: package.
 
