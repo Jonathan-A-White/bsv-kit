@@ -69,49 +69,53 @@ All namespaces are stubs until their stories land.
 bsv-kit stands on the work below. Each credit gives what it is used for, its licence and any changes made. None of it is
 changed by us: we use each as published.
 
+A source added or removed changes its credit in the same commit, and the credits test says so: each credit ends with its
+`Kind:` (package, tool, service, idea, font or data); a package credit fails when that package is no longer in a package.json,
+and every bundled font or data file must be named in backticks by a font or data credit.
+
 Runtime libraries (installed with the libraries):
 
 - [@bsv/sdk](https://github.com/bsv-blockchain/ts-stack/tree/main/packages/sdk): the BSV TypeScript SDK; keys, signatures, transactions and
   the token checks behind the key vault, the door's signed calls and the licence check in `@bsv-kit/bsv` and `@bsv-kit/grist`.
-  Licence: [Open BSV License version 4](https://github.com/bsv-blockchain/ts-stack/blob/main/packages/sdk/LICENSE.txt). No changes.
+  Licence: [Open BSV License version 4](https://github.com/bsv-blockchain/ts-stack/blob/main/packages/sdk/LICENSE.txt). No changes. Kind: package.
 - [@scure/bip39](https://github.com/paulmillr/scure-bip39): BIP-39 recovery words for the key vault in `@bsv-kit/bsv`, by
-  Paul Miller. Licence: [MIT](https://github.com/paulmillr/scure-bip39/blob/main/LICENSE). No changes.
+  Paul Miller. Licence: [MIT](https://github.com/paulmillr/scure-bip39/blob/main/LICENSE). No changes. Kind: package.
 
 Runtime libraries the app brings (peer dependencies of the composer only):
 
 - [React](https://react.dev): `react` and `react-dom`, the UI library `@bsv-kit/composer` is written for (18 or later). Licence:
-  [MIT](https://github.com/facebook/react/blob/main/LICENSE). No changes.
+  [MIT](https://github.com/facebook/react/blob/main/LICENSE). No changes. Kind: package.
 
 Outside services:
 
 - [WhatsOnChain](https://whatsonchain.com): the block explorer API that the licence check reads transactions from. Licence:
-  [terms of use](https://whatsonchain.com/terms-of-use) of its public API. Nothing is copied from it.
+  [terms of use](https://whatsonchain.com/terms-of-use) of its public API. Nothing is copied from it. Kind: service.
 
 Tools used to build and test (not installed by apps):
 
 - [TypeScript](https://github.com/microsoft/TypeScript): the language and compiler. Licence:
-  [Apache-2.0](https://github.com/microsoft/TypeScript/blob/main/LICENSE.txt). No changes.
-- [Vitest](https://vitest.dev): runs the tests. Licence: [MIT](https://github.com/vitest-dev/vitest/blob/main/LICENSE). No changes.
-- [ESLint](https://eslint.org): the linter. Licence: [MIT](https://github.com/eslint/eslint/blob/main/LICENSE). No changes.
+  [Apache-2.0](https://github.com/microsoft/TypeScript/blob/main/LICENSE.txt). No changes. Kind: package.
+- [Vitest](https://vitest.dev): runs the tests. Licence: [MIT](https://github.com/vitest-dev/vitest/blob/main/LICENSE). No changes. Kind: package.
+- [ESLint](https://eslint.org): the linter. Licence: [MIT](https://github.com/eslint/eslint/blob/main/LICENSE). No changes. Kind: package.
 - [Vite](https://vite.dev): serves and builds the example page under `examples/`. Licence:
-  [MIT](https://github.com/vitejs/vite/blob/main/LICENSE). No changes.
+  [MIT](https://github.com/vitejs/vite/blob/main/LICENSE). No changes. Kind: package.
 - [Testing Library](https://testing-library.com): `@testing-library/react` and `@testing-library/dom` render the composer
-  in its tests. Licence: [MIT](https://github.com/testing-library/react-testing-library/blob/main/LICENSE). No changes.
+  in its tests. Licence: [MIT](https://github.com/testing-library/react-testing-library/blob/main/LICENSE). No changes. Kind: package.
 - [jsdom](https://github.com/jsdom/jsdom): the page the composer's tests run in. Licence:
-  [MIT](https://github.com/jsdom/jsdom/blob/main/LICENSE.txt). No changes.
+  [MIT](https://github.com/jsdom/jsdom/blob/main/LICENSE.txt). No changes. Kind: package.
 
 Projects and ideas we took:
 
 - [Postern](https://github.com/Jonathan-A-White/postern): the code and wire formats here are lifted from Postern's working code, which is
   the law for them. Licence: [MIT](https://github.com/Jonathan-A-White/postern/blob/main/LICENSE). Adapted into separate libraries with
   no UI, no DOM and injected storage, but for the composer, which keeps Postern's UI and its tests and leaves Postern's own
-  parts (threads, drafts, saved prompts) in Postern.
+  parts (threads, drafts, saved prompts) in Postern. Kind: idea.
 - [Beads](https://github.com/steveyegge/beads): Steve Yegge's issue tracker for AI agents; the work on this repo is tracked in it.
-  Licence: [MIT](https://github.com/steveyegge/beads/blob/main/LICENSE). Used as published.
+  Licence: [MIT](https://github.com/steveyegge/beads/blob/main/LICENSE). Used as published. Kind: tool.
 - [Gas Town](https://github.com/steveyegge/gastown): Steve Yegge's idea of a factory of coordinating agent roles, which shaped how
-  this repo is built. Licence: [MIT](https://github.com/steveyegge/gastown/blob/main/LICENSE). We took the idea, not its code.
+  this repo is built. Licence: [MIT](https://github.com/steveyegge/gastown/blob/main/LICENSE). We took the idea, not its code. Kind: idea.
 - [Claude Code](https://www.anthropic.com/claude-code): Anthropic's coding agent, which writes the code in this repo under the
-  Governor's direction. Licence: [commercial terms](https://www.anthropic.com/legal/commercial-terms). Used as a tool.
+  Governor's direction. Licence: [commercial terms](https://www.anthropic.com/legal/commercial-terms). Used as a tool. Kind: tool.
 
 ## Develop
 
