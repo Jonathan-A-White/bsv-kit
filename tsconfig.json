@@ -12,5 +12,5 @@
     }
   },
   "include": ["packages/*/src", "packages/*/tests", "vitest.config.ts", "eslint.config.js"],
-  "exclude": ["packages/composer", "**/dist"]
+  "exclude": ["packages/composer", "packages/whats-new", "**/dist"]
 }
