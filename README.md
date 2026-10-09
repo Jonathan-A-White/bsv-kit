@@ -1,7 +1,7 @@
 # bsv-kit
 
 Shared TypeScript libraries for the Governor's PWAs, lifted from the working code in
-[Postern](https://github.com/Jonathan-A-White/postern). One repo, four separate libraries:
+[Postern](https://github.com/Jonathan-A-White/postern). One repo, five separate libraries:
 
 - `@bsv-kit/bsv`: key vault, door client for signed Postern API calls, licence check.
 - `@bsv-kit/grist`: send grist with photos and recordings, poll the mill's answer (and a one-page read
@@ -13,8 +13,12 @@ Shared TypeScript libraries for the Governor's PWAs, lifted from the working cod
   are heard, slide off to keep them unsent, quiet attach and camera, 'Type a message'; speak-first or
   type-first; themed by CSS custom properties. It imports nothing from bsv, grist or tips. See
   [packages/composer](packages/composer/README.md).
+- `@bsv-kit/whats-new`: every app's What's new, a React package: the Update ready banner's summary, a one-time
+  What's new sheet after an update, the versions list for About, a Check for updates button, and the version link
+  to `CHANGELOG.md` on GitHub; themed by CSS custom properties. It imports nothing from the other libraries. See
+  [packages/whats-new](packages/whats-new/README.md).
 
-No UI and no DOM live in bsv, grist or tips; the composer is the one UI library, and needs React 18 or later
+No UI and no DOM live in bsv, grist or tips; the composer and whats-new are the UI libraries, and need React 18 or later
 (`react`, `react-dom`: optional peer dependencies, so an app that does not use it needs no React). The example
 page lives under `examples/` (see
 [examples/door-demo](examples/door-demo/README.md); `npm run demo` serves it).
@@ -42,6 +46,7 @@ import { grist } from 'bsv-kit/grist';
 import { tips } from 'bsv-kit/tips';
 import { Composer } from 'bsv-kit/composer'; // a React component
 import 'bsv-kit/composer/styles.css'; // its default look, themed by --bk-composer-* properties
+import { WhatsNewSheet } from 'bsv-kit/whats-new'; // a React component, with its own styles.css
 import { fakePostern } from 'bsv-kit/testing'; // in tests only: a fake Postern behind a fetch
 ```
 
@@ -56,6 +61,7 @@ Postern's wire formats are the law; each module is lifted from the Postern file 
 | `bsv-kit/bsv`    | `licence` | does a key hold a License token              | `licence.ts`                                   |
 | `bsv-kit/grist`  | `grist`   | send grist with photos, poll the answer      | `send.ts`, `attachments.ts`, `talk.ts`         |
 | `bsv-kit/tips`   | `tips`    | one-time tips, dismissed for good            | (new; not from Postern)                        |
+| `bsv-kit/whats-new` | `WhatsNewSheet`, `summarise`, ... | What's new for every app: summary, one-time sheet, list, Check for updates (React) | (new; not from Postern) |
 | `bsv-kit/testing`| `fakePostern` | TEST-ONLY fake backend for an app's tests | (the grist tests' own fake)                    |
 | `bsv-kit/composer` | `Composer`, `useHold`, ... | the hold-to-talk message composer (React) | `listen.ts`, `micInput.ts`, `recorder.ts`; and `src/cockpit/`: `Composer.tsx`, `HoldToTalkBar.tsx`, `useHold.ts` |
 
@@ -81,9 +87,9 @@ Runtime libraries (installed with the libraries):
 - [@scure/bip39](https://github.com/paulmillr/scure-bip39): BIP-39 recovery words for the key vault in `@bsv-kit/bsv`, by
   Paul Miller. Licence: [MIT](https://github.com/paulmillr/scure-bip39/blob/main/LICENSE). No changes. Kind: package.
 
-Runtime libraries the app brings (peer dependencies of the composer only):
+Runtime libraries the app brings (peer dependencies of the composer and whats-new only):
 
-- [React](https://react.dev): `react` and `react-dom`, the UI library `@bsv-kit/composer` is written for (18 or later). Licence:
+- [React](https://react.dev): `react` and `react-dom`, the UI library `@bsv-kit/composer` and `@bsv-kit/whats-new` are written for (18 or later). Licence:
   [MIT](https://github.com/facebook/react/blob/main/LICENSE). No changes. Kind: package.
 
 Outside services:

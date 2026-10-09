@@ -4,6 +4,7 @@
 //   - 'bsv-kit/bsv' alone imports, and its import graph holds no grist file;
 //   - 'bsv-kit/tips' imports and keeps a dismissal;
 //   - 'bsv-kit/composer' renders with the React the app installs, and its styles.css is packed.
+//   - 'bsv-kit/whats-new' renders with the same React, its styles.css is packed, and its import graph holds no other library.
 // The "fresh clone" is the working tree as it stands (tracked and untracked files, minus what git ignores),
 // committed into a scratch repository, so an edit not yet committed is smoke-tested too.
 // Run: npm run smoke   (needs the network or a warm npm cache: the install runs the build with devDependencies)
@@ -160,6 +161,43 @@ console.log('bsv-kit/composer renders');
 `,
   );
   console.log(run('node', ['composer.mjs'], app).trim());
+
+  // 9. 'bsv-kit/whats-new' with the same React: it renders, its stylesheet is packed, and its import graph reaches
+  // no other library.
+  const whatsNewSeen = new Set();
+  const walkWhatsNew = (file) => {
+    if (whatsNewSeen.has(file)) return;
+    whatsNewSeen.add(file);
+    for (const m of readFileSync(file, 'utf-8').matchAll(specifier)) {
+      const s = m[1] ?? m[2] ?? m[3];
+      if (/^(@bsv-kit\/|bsv-kit\/)/.test(s)) throw new Error(`${relative(installed, file)} imports ${s}`);
+      if (s.startsWith('.')) walkWhatsNew(resolve(dirname(file), s));
+    }
+  };
+  walkWhatsNew(join(installed, 'packages/whats-new/dist/index.js'));
+  writeFileSync(
+    join(app, 'whats-new.mjs'),
+    `
+import { createElement } from 'react';
+import { renderToString } from 'react-dom/server';
+import { createRequire } from 'node:module';
+import { existsSync } from 'node:fs';
+import { WhatsNewList, summarise, versionLink } from 'bsv-kit/whats-new';
+
+const entries = [
+  { version: '0.5.9', date: '2026-10-09', story: 's', kind: 'new', text: 'Pin a message.' },
+  { version: '0.5.9', date: '2026-10-09', story: 's', kind: 'fixed', text: 'No more jumping.' },
+];
+const html = renderToString(createElement(WhatsNewList, { entries }));
+if (!html.includes('bk-whats-new') || !html.includes('Pin a message.') || !html.includes('0.5.9')) throw new Error('whats-new html: ' + html);
+if (summarise(entries, '0.5.8')?.bannerText !== "0.5.9 · 1 new, 1 fixed · What's new") throw new Error('summary');
+if (versionLink({ repo: 'a/b', public: true, version: '0.5.9' }) !== 'https://github.com/a/b/blob/main/CHANGELOG.md#059') throw new Error('link');
+const css = createRequire(import.meta.url).resolve('bsv-kit/whats-new/styles.css');
+if (!existsSync(css)) throw new Error('styles.css is not packed');
+console.log('bsv-kit/whats-new renders');
+`,
+  );
+  console.log(run('node', ['whats-new.mjs'], app).trim());
   console.log('consumer smoke test passed');
 } catch (err) {
   console.error(String(err?.stderr ?? '') || err);
