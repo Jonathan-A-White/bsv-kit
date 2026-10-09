@@ -1,7 +1,7 @@
 {
   "name": "bsv-kit",
   "version": "0.2.0",
-  "description": "Shared TypeScript libraries for the Governor's PWAs: @bsv-kit/bsv (key vault, door client, licence check), @bsv-kit/grist (send grist, poll the answer), @bsv-kit/tips (one-time tips, dismissed for good) and @bsv-kit/composer (Postern's hold-to-talk message composer, a React component) and @bsv-kit/whats-new (every app's What's new, a React package).",
+  "description": "Shared TypeScript libraries for the Governor's PWAs: @bsv-kit/bsv (key vault, door client, licence check), @bsv-kit/grist (send grist, poll the answer), @bsv-kit/tips (one-time tips, dismissed for good), @bsv-kit/composer (Postern's hold-to-talk message composer, a React component), @bsv-kit/whats-new (every app's What's new, a React package) and @bsv-kit/testing (honest speech and microphone fakes for an app's tests, vitest and Playwright).",
   "license": "MIT",
   "type": "module",
   "repository": {
@@ -32,6 +32,14 @@
       "types": "./packages/grist/dist/testing.d.ts",
       "default": "./packages/grist/dist/testing.js"
     },
+    "./testing/speech": {
+      "types": "./packages/testing/dist/speech.d.ts",
+      "default": "./packages/testing/dist/speech.js"
+    },
+    "./testing/mic": {
+      "types": "./packages/testing/dist/mic.d.ts",
+      "default": "./packages/testing/dist/mic.js"
+    },
     "./composer": {
       "types": "./packages/composer/dist/index.d.ts",
       "default": "./packages/composer/dist/index.js"
@@ -50,7 +58,7 @@
     "!**/*.tsbuildinfo"
   ],
   "scripts": {
-    "build": "tsc -b packages/bsv/tsconfig.build.json packages/grist/tsconfig.build.json packages/tips/tsconfig.build.json packages/composer/tsconfig.build.json packages/whats-new/tsconfig.build.json && node -e \"for (const p of ['composer', 'whats-new']) require('node:fs').copyFileSync('packages/' + p + '/src/styles.css', 'packages/' + p + '/dist/styles.css')\"",
+    "build": "tsc -b packages/bsv/tsconfig.build.json packages/grist/tsconfig.build.json packages/tips/tsconfig.build.json packages/composer/tsconfig.build.json packages/whats-new/tsconfig.build.json packages/testing/tsconfig.build.json && node -e \"for (const p of ['composer', 'whats-new']) require('node:fs').copyFileSync('packages/' + p + '/src/styles.css', 'packages/' + p + '/dist/styles.css')\"",
     "prepare": "npm run build",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p packages/composer/tsconfig.json --noEmit && tsc -p packages/whats-new/tsconfig.json --noEmit && tsc -p examples/door-demo/tsconfig.json --noEmit",
@@ -84,6 +92,7 @@
     "@types/react-dom": "^19.3.0",
     "eslint": "^9.39.1",
     "jsdom": "^28.1.0",
+    "playwright-core": "^1.63.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "typescript": "~5.9.3",
