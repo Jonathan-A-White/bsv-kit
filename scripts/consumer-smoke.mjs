@@ -2,7 +2,8 @@
 // into a scratch directory, and checks from there what a git install must deliver:
 //   - 'bsv-kit/grist' imports and sendGrist (which reaches bsv's door) sends a grist to a fake backend;
 //   - 'bsv-kit/bsv' alone imports, and its import graph holds no grist file;
-//   - 'bsv-kit/tips' imports and keeps a dismissal.
+//   - 'bsv-kit/tips' imports and keeps a dismissal;
+//   - 'bsv-kit/composer' renders with the React the app installs, and its styles.css is packed.
 // The "fresh clone" is the working tree as it stands (tracked and untracked files, minus what git ignores),
 // committed into a scratch repository, so an edit not yet committed is smoke-tested too.
 // Run: npm run smoke   (needs the network or a warm npm cache: the install runs the build with devDependencies)
@@ -126,6 +127,39 @@ console.log('bsv-kit/tips imports');
 `,
   );
   console.log(run('node', ['tips.mjs'], app).trim());
+
+  // 8. 'bsv-kit/composer' with the React the app brings: it renders, its stylesheet is packed, and its import
+  // graph reaches no bsv, grist or tips file.
+  run('npm', ['install', '--no-audit', '--no-fund', 'react@19', 'react-dom@19'], app, { timeout: 480_000 });
+  const composerSeen = new Set();
+  const walkComposer = (file) => {
+    if (composerSeen.has(file)) return;
+    composerSeen.add(file);
+    for (const m of readFileSync(file, 'utf-8').matchAll(specifier)) {
+      const s = m[1] ?? m[2] ?? m[3];
+      if (/^(@bsv-kit\/|bsv-kit\/)/.test(s)) throw new Error(`${relative(installed, file)} imports ${s}`);
+      if (s.startsWith('.')) walkComposer(resolve(dirname(file), s));
+    }
+  };
+  walkComposer(join(installed, 'packages/composer/dist/index.js'));
+  writeFileSync(
+    join(app, 'composer.mjs'),
+    `
+import { createElement } from 'react';
+import { renderToString } from 'react-dom/server';
+import { createRequire } from 'node:module';
+import { existsSync } from 'node:fs';
+import { Composer, browserSpeech } from 'bsv-kit/composer';
+
+const html = renderToString(createElement(Composer, { mode: 'type', attach: true, onSend: () => true }));
+if (!html.includes('bk-composer') || !html.includes('aria-label="Send"') || !html.includes('aria-label="Attach files"')) throw new Error('composer html: ' + html);
+if (browserSpeech.supported()) throw new Error('node has no speech recogniser');
+const css = createRequire(import.meta.url).resolve('bsv-kit/composer/styles.css');
+if (!existsSync(css)) throw new Error('styles.css is not packed');
+console.log('bsv-kit/composer renders');
+`,
+  );
+  console.log(run('node', ['composer.mjs'], app).trim());
   console.log('consumer smoke test passed');
 } catch (err) {
   console.error(String(err?.stderr ?? '') || err);
