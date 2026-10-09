@@ -3,8 +3,9 @@
 //   - 'bsv-kit/grist' imports and sendGrist (which reaches bsv's door) sends a grist to a fake backend;
 //   - 'bsv-kit/bsv' alone imports, and its import graph holds no grist file;
 //   - 'bsv-kit/tips' imports and keeps a dismissal;
-//   - 'bsv-kit/composer' renders with the React the app installs, and its styles.css is packed.
+//   - 'bsv-kit/composer' renders with the React the app installs, and its styles.css is packed;
 //   - 'bsv-kit/whats-new' renders with the same React, its styles.css is packed, and its import graph holds no other library.
+//   - 'bsv-kit/testing/speech' and 'bsv-kit/testing/mic' run in vitest the app installs (fake timers), by import and by init script.
 // The "fresh clone" is the working tree as it stands (tracked and untracked files, minus what git ignores),
 // committed into a scratch repository, so an edit not yet committed is smoke-tested too.
 // Run: npm run smoke   (needs the network or a warm npm cache: the install runs the build with devDependencies)
@@ -198,6 +199,68 @@ console.log('bsv-kit/whats-new renders');
 `,
   );
   console.log(run('node', ['whats-new.mjs'], app).trim());
+
+  // 10. 'bsv-kit/testing/speech' and 'bsv-kit/testing/mic' in the vitest the app installs: packed (packages/testing/dist),
+  // resolved by the exports map, and working under fake timers, by import and by the init-script strings for Playwright.
+  for (const file of ['index.js', 'speech.js', 'mic.js', 'clips.js']) {
+    if (!existsSync(join(installed, 'packages/testing/dist', file))) throw new Error(`packages/testing/dist/${file} is not packed`);
+  }
+  run('npm', ['install', '--no-audit', '--no-fund', 'vitest@4'], app, { timeout: 480_000 });
+  writeFileSync(
+    join(app, 'testing.test.mjs'),
+    `
+import { afterEach, expect, it, vi } from 'vitest';
+import { installSpeech, speechInitScript } from 'bsv-kit/testing/speech';
+import { clips, installMic, micInitScript } from 'bsv-kit/testing/mic';
+
+afterEach(() => vi.useRealTimers());
+
+it('an honest utterance ends in the time its text sets', async () => {
+  vi.useFakeTimers();
+  const win = {};
+  const fake = installSpeech(win);
+  const events = [];
+  const u = new win.SpeechSynthesisUtterance('Hello there world');
+  u.onend = () => events.push('end@' + Date.now());
+  const t0 = Date.now();
+  win.speechSynthesis.speak(u);
+  await vi.advanceTimersByTimeAsync(329);
+  expect(events).toEqual([]);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(events).toEqual(['end@' + (t0 + 330)]);
+  fake.uninstall();
+});
+
+it('an honest recogniser sends an interim result before the final one', async () => {
+  vi.useFakeTimers();
+  const win = {};
+  const mic = installMic(win, { clip: clips.greek });
+  const seen = [];
+  const r = new win.webkitSpeechRecognition();
+  r.interimResults = true;
+  r.onresult = (e) => seen.push(e.results[0].isFinal);
+  r.start();
+  await vi.advanceTimersByTimeAsync(10000);
+  expect(seen[0]).toBe(false);
+  expect(seen.at(-1)).toBe(true);
+  mic.uninstall();
+});
+
+it('the init scripts are the same fakes, from the built files', async () => {
+  vi.useFakeTimers();
+  (0, eval)(speechInitScript() + micInitScript({ denied: true }));
+  const registry = globalThis.__bsvKitTesting;
+  expect(typeof globalThis.speechSynthesis.speak).toBe('function');
+  const denied = globalThis.navigator.mediaDevices.getUserMedia({ audio: true }).catch((e) => e.name);
+  await vi.advanceTimersByTimeAsync(200);
+  expect(await denied).toBe('NotAllowedError');
+  registry.speech.uninstall();
+  registry.mic.uninstall();
+});
+`,
+  );
+  run('npx', ['vitest', 'run'], app, { timeout: 240_000 });
+  console.log('bsv-kit/testing/speech and bsv-kit/testing/mic run in vitest');
   console.log('consumer smoke test passed');
 } catch (err) {
   console.error(String(err?.stderr ?? '') || err);
