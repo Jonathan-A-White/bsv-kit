@@ -199,3 +199,15 @@ describe('licenceStatus', () => {
     });
   });
 });
+
+describe('FakeChainReader bulk read', () => {
+  it('gives every transaction it holds and leaves out one it does not, as WhatsOnChain does', async () => {
+    const reader = new FakeChainReader();
+    reader.addTransaction(ADDRESS, MINT, mintTxHex('postern'));
+    reader.addKnownTransaction('e'.repeat(64), transferTxHex(`${MINT}:0`));
+    const found = await reader.getTransactionHexes([MINT, 'e'.repeat(64), 'f'.repeat(64)]);
+    expect([...found.keys()]).toEqual([MINT, 'e'.repeat(64)]);
+    reader.offline = true;
+    await expect(reader.getTransactionHexes([MINT])).rejects.toThrow('unreachable');
+  });
+});

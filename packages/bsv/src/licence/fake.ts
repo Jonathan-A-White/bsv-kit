@@ -46,4 +46,15 @@ export class FakeChainReader implements ChainReader {
     if (!hex) throw new Error(`FakeChainReader has no transaction for ${txid}`);
     return hex;
   }
+
+  /** The bulk read: every txid it holds; one it does not is left out, as WhatsOnChain leaves one it cannot read. */
+  async getTransactionHexes(txids: readonly string[]): Promise<Map<string, string>> {
+    this.assertOnline();
+    const found = new Map<string, string>();
+    for (const txid of txids) {
+      const hex = this.hexByTxid.get(txid);
+      if (hex) found.set(txid, hex);
+    }
+    return found;
+  }
 }

@@ -30,8 +30,10 @@ const status = await licence.licenceStatus(publicKeyHex, 'postern', {     // hel
 ```
 
 The chain is read through a `ChainReader` (`getAddressHistory`, optional `getUnconfirmedAddressHistory`,
-`getTransactionHex`). The default is `WhatsOnChainReader` (testnet, `fetch` and the base URL are inputs;
-paced and retried as Postern's provider is); `FakeChainReader` is the in-memory double for tests.
+`getTransactionHex`, optional `getTransactionHexes`, a bulk read). The default is `WhatsOnChainReader` (testnet,
+`fetch` and the base URL are inputs; paced and retried as Postern's provider is; it reads transactions in bulk,
+20 a request, through WhatsOnChain's `/txs/hex`); `FakeChainReader` is the in-memory double for tests. One check
+reads each transaction once.
 `collection` may be a list in order of preference. A key holds a licence when a type-M record in
 its own address history names it holder of the collection and no type-TR record moves that mint away.
 `indexing` means no mint shows yet but `pending` names one broadcast within `graceMs` (default 10
@@ -40,5 +42,18 @@ minutes) - Postern's "licence is on its way" (mw-1589l.24). The app keeps the pe
 A licence an issuer minted to the key (Postern's Issue a licence) is funded by the issuer, so the holder's
 own history never lists it: pass `issuer: <the issuer's public key hex>` and the check also reads the issuer's
 history, counts only a mint the issuer signed and honours the issuer's signed revoke record, as Postern's
-backend does. Without `issuer` only the holder's own history is read. `findLicenceForAddress` is
+backend does. Without `issuer` only the holder's own history is read. A revoke's signature is checked only when
+it names one of the holder's mints, so the issuer's revokes of other licences cost nothing. `findLicenceForAddress` is
 `findLicence` for a holder known by testnet address.
+
+A transaction never changes, so an app may keep the ones a check reads and pass them to the next: `txCache`
+takes `get(txid)` and `set(txid, hex)` (either may return a promise, so IndexedDB will do). The next check then
+reads only the histories and whatever is new in them. A kept copy that is not the transaction its txid names is
+read again, and a cache that throws is passed over; the chain is the source of truth.
+
+```ts
+const status = await licence.licenceStatus(publicKeyHex, 'legend', {
+  issuer: issuerPublicKeyHex,
+  txCache: { get: (txid) => db.get('txs', txid), set: (txid, hex) => db.put('txs', hex, txid) },
+});
+```

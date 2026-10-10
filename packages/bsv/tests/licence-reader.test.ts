@@ -6,7 +6,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { licence } from '../src/index.js';
-import { PUBLIC_KEY_HEX } from './support/records.js';
+import type { ChainReader } from '../src/licence/index.js';
+import { ADDRESS, PUBLIC_KEY_HEX, mintTxHex } from './support/records.js';
 
 const { WhatsOnChainReader, findLicence, WOC_TESTNET_URL } = licence;
 
@@ -63,7 +64,13 @@ describe('WhatsOnChainReader against the requests Postern made', () => {
     it(`builds the same URLs, pacing and answer: ${scenario.name}`, async () => {
       const { fetchFn, requests } = scriptedFetch(scenario);
       const delays: number[] = [];
-      const reader = new WhatsOnChainReader({ fetch: fetchFn, delay: async (ms) => void delays.push(ms) });
+      const woc = new WhatsOnChainReader({ fetch: fetchFn, delay: async (ms) => void delays.push(ms) });
+      // Postern read one transaction at a time; the bulk read is this reader's own (tested below), so it is left out here.
+      const reader: ChainReader = {
+        getAddressHistory: (address) => woc.getAddressHistory(address),
+        getUnconfirmedAddressHistory: (address) => woc.getUnconfirmedAddressHistory(address),
+        getTransactionHex: (txid) => woc.getTransactionHex(txid),
+      };
       const found = await findLicence(PUBLIC_KEY_HEX, ['postern', 'spellforge-leaderboard-testnet'], { reader });
       const confirmedUrl = (url: string) => (url.endsWith('/unconfirmed/history') ? url : url.replace(/\/history$/, '/confirmed/history'));
       expect(requests).toEqual(scenario.requests.map((request) => ({ ...request, url: confirmedUrl(request.url) })));
@@ -135,5 +142,88 @@ describe('WhatsOnChainReader requests', () => {
     await expect(reader.getTransactionHex('c'.repeat(64))).rejects.toThrow('404');
     expect(calls).toBe(15);
     expect(delays.filter((ms) => ms === 1000)).toHaveLength(14);
+  });
+});
+
+describe('WhatsOnChainReader bulk transaction reads', () => {
+  const BASE = 'https://woc.example/v1';
+  const txidOf = (n: number): string => n.toString(16).padStart(64, '0');
+
+  /** A WhatsOnChain answering /txs/hex (at most 20 a request, as the real one) and /tx/{txid}/hex from `hex`;
+   * `unknownInBulk` are txids the bulk read answers with an error, as it does for one it has not indexed yet. */
+  function bulkFetch(hex: Record<string, string>, unknownInBulk: string[] = []) {
+    const requests: { url: string; method: string; txids?: string[] }[] = [];
+    const fetchFn = (async (input: string | URL, init?: RequestInit) => {
+      const url = String(input);
+      const path = url.slice(BASE.length);
+      if (path === '/txs/hex' && init?.method === 'POST') {
+        const { txids } = JSON.parse(String(init.body)) as { txids: string[] };
+        requests.push({ url, method: 'POST', txids });
+        if (txids.length > 20) return new Response('"Maximum number of transactions per request has been exceeded"', { status: 400 });
+        return new Response(
+          JSON.stringify(txids.map((txid) => (hex[txid] && !unknownInBulk.includes(txid) ? { txid, hex: hex[txid], blockheight: 1 } : { txid, error: 'unknown' }))),
+          { status: 200 },
+        );
+      }
+      requests.push({ url, method: init?.method ?? 'GET' });
+      if (path.endsWith('/confirmed/history')) return new Response(JSON.stringify({ result: Object.keys(hex).map((txid, i) => ({ tx_hash: txid, height: i + 1 })) }), { status: 200 });
+      if (path.endsWith('/unconfirmed/history')) return new Response(JSON.stringify({ result: [] }), { status: 200 });
+      const one = /^\/tx\/([0-9a-f]{64})\/hex$/.exec(path);
+      if (one && hex[one[1]]) return new Response(hex[one[1]], { status: 200 });
+      return new Response('Not Found', { status: 404 });
+    }) as typeof fetch;
+    return { fetchFn, requests };
+  }
+
+  it('posts the txids 20 a request, paced, and leaves out a txid it could not read', async () => {
+    const hex: Record<string, string> = {};
+    for (let n = 1; n <= 45; n++) hex[txidOf(n)] = mintTxHex('cairn');
+    const { fetchFn, requests } = bulkFetch(hex, [txidOf(7)]);
+    const delays: number[] = [];
+    const reader = new WhatsOnChainReader({ baseUrl: BASE, fetch: fetchFn, delay: async (ms) => void delays.push(ms) });
+    const found = await reader.getTransactionHexes([...Object.keys(hex), txidOf(99)]);
+    expect(requests.map((request) => [request.method, request.url, request.txids?.length])).toEqual([
+      ['POST', `${BASE}/txs/hex`, 20],
+      ['POST', `${BASE}/txs/hex`, 20],
+      ['POST', `${BASE}/txs/hex`, 6],
+    ]);
+    expect(delays).toEqual([350, 350]);
+    expect(found.size).toBe(44);
+    expect(found.has(txidOf(7))).toBe(false);
+    expect(found.has(txidOf(99))).toBe(false);
+    expect(found.get(txidOf(1))).toBe(hex[txidOf(1)]);
+  });
+
+  it('lets the licence check read a long history in bulk, and one at a time only what the bulk read missed', async () => {
+    const hex: Record<string, string> = {};
+    for (let n = 1; n <= 44; n++) hex[txidOf(n)] = mintTxHex('cairn');
+    hex[txidOf(45)] = mintTxHex('postern', ADDRESS);
+    const { fetchFn, requests } = bulkFetch(hex, [txidOf(45)]);
+    const reader = new WhatsOnChainReader({ baseUrl: BASE, fetch: fetchFn, delay: async () => {} });
+    expect(await findLicence(PUBLIC_KEY_HEX, 'postern', { reader })).toEqual({ txid: txidOf(45), vout: 0, collection: 'postern' });
+    expect(requests.map((request) => `${request.method} ${request.url.slice(BASE.length)}`)).toEqual([
+      `GET /address/${ADDRESS}/confirmed/history`,
+      `GET /address/${ADDRESS}/unconfirmed/history`,
+      'POST /txs/hex',
+      'POST /txs/hex',
+      'POST /txs/hex',
+      `GET /tx/${txidOf(45)}/hex`,
+    ]);
+  });
+
+  it('reads one at a time when the bulk read fails', async () => {
+    const hex = { [txidOf(1)]: mintTxHex('cairn'), [txidOf(2)]: mintTxHex('postern', ADDRESS) };
+    const requests: string[] = [];
+    const fetchFn = (async (input: string | URL, init?: RequestInit) => {
+      const path = String(input).slice(BASE.length);
+      requests.push(`${init?.method ?? 'GET'} ${path}`);
+      if (path === '/txs/hex') return new Response('teapot', { status: 418 });
+      if (path.endsWith('/confirmed/history')) return new Response(JSON.stringify([{ tx_hash: txidOf(1), height: 1 }, { tx_hash: txidOf(2), height: 2 }]), { status: 200 });
+      if (path.endsWith('/unconfirmed/history')) return new Response(JSON.stringify({ result: [] }), { status: 200 });
+      return new Response(hex[path.slice(4, 68)], { status: 200 });
+    }) as typeof fetch;
+    const reader = new WhatsOnChainReader({ baseUrl: BASE, fetch: fetchFn, delay: async () => {} });
+    expect(await findLicence(PUBLIC_KEY_HEX, 'postern', { reader })).toMatchObject({ txid: txidOf(2) });
+    expect(requests.slice(2)).toEqual(['POST /txs/hex', `GET /tx/${txidOf(1)}/hex`, `GET /tx/${txidOf(2)}/hex`]);
   });
 });

@@ -18,6 +18,8 @@ const MIN_REQUEST_SPACING_MS = 350;
 const TX_HEX_NOT_FOUND_RETRY_DELAY_MS = 1000;
 const TX_HEX_NOT_FOUND_RETRY_TIMEOUT_MS = 15000;
 const TX_HEX_NOT_FOUND_MAX_ATTEMPTS = Math.ceil(TX_HEX_NOT_FOUND_RETRY_TIMEOUT_MS / TX_HEX_NOT_FOUND_RETRY_DELAY_MS);
+// Its POST /txs/hex answers at most this many transactions a request (more is a 400).
+const MAX_BULK_TXIDS = 20;
 
 /** A failed WhatsOnChain call; `status` is the HTTP status when there was one. */
 export class ChainError extends Error {
@@ -149,13 +151,35 @@ export class WhatsOnChainReader implements ChainReader {
     }
   }
 
-  private async request(path: string): Promise<Response> {
+  /** Many transactions, MAX_BULK_TXIDS a request (WhatsOnChain's POST /txs/hex), each request paced like any
+   * other. A txid WhatsOnChain answers with an error (one it has not indexed yet, say) is left out of the map;
+   * the licence check reads that one with getTransactionHex, which waits out the index's lag. */
+  async getTransactionHexes(txids: readonly string[]): Promise<Map<string, string>> {
+    const found = new Map<string, string>();
+    for (let start = 0; start < txids.length; start += MAX_BULK_TXIDS) {
+      const asked = txids.slice(start, start + MAX_BULK_TXIDS).map((txid) => txid.trim());
+      await this.waitForRequestSlot();
+      const body = (await (
+        await this.request('/txs/hex', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ txids: asked }) })
+      ).json()) as unknown;
+      if (!Array.isArray(body)) {
+        throw new ChainError(`WhatsOnChain /txs/hex returned an unexpected response shape: ${JSON.stringify(body).slice(0, MAX_ERROR_BODY_CHARS)}`);
+      }
+      for (const entry of body as { txid?: unknown; hex?: unknown; error?: unknown }[]) {
+        if (typeof entry?.txid !== 'string' || !asked.includes(entry.txid) || typeof entry.hex !== 'string' || !entry.hex || entry.error) continue;
+        found.set(entry.txid, entry.hex.trim());
+      }
+    }
+    return found;
+  }
+
+  private async request(path: string, init?: RequestInit): Promise<Response> {
     const url = `${this.baseUrl}${path}`;
     let retryDelayMs = INITIAL_RETRY_DELAY_MS;
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       let response: Response;
       try {
-        response = await this.fetchImpl(url);
+        response = await this.fetchImpl(url, init);
       } catch (error) {
         // A rejected fetch cannot be told from a 429 here (see MIN_REQUEST_SPACING_MS): retry it the same way.
         if (attempt === MAX_ATTEMPTS) {
