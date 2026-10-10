@@ -91,7 +91,7 @@ function decodePayload(record: TypedRecordInTransaction): Record<string, unknown
 }
 
 /** The transactions one check reads, each read once: from those it has, else the app's cache, else the reader
- * (in bulk when it can, as the histories are long; one at a time for what the bulk read did not bring). */
+ * (in bulk when it can, as the histories are long; one at a time for any the bulk read left out). */
 class Transactions {
   private readonly known = new Map<string, string>();
 
@@ -109,12 +109,9 @@ class Transactions {
       else this.known.set(txid, cached);
     }
     if (missing.length > 1 && this.reader.getTransactionHexes) {
-      let found = new Map<string, string>();
-      try {
-        found = await this.reader.getTransactionHexes(missing);
-      } catch {
-        // The bulk read is a shortcut: what it did not bring is read one at a time below.
-      }
+      // A bulk read that fails fails the check, as any read does: reading its txids one at a time instead
+      // would ask a rate-limited WhatsOnChain twenty times more.
+      const found = await this.reader.getTransactionHexes(missing);
       for (const txid of missing) {
         const hex = found.get(txid);
         if (hex) await this.keep(txid, hex);

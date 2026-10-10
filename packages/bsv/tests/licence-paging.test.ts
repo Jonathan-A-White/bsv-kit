@@ -33,10 +33,15 @@ function filler(count: number, from: number): { rows: Row[]; hex: Record<string,
 /** A scripted WhatsOnChain: `pages(token)` answers /confirmed/history, `hex` the transactions. */
 function scriptedFetch(pages: (token: string | null) => Page, hex: Record<string, string>) {
   const urls: string[] = [];
-  const fetchFn = (async (input: string | URL) => {
+  const fetchFn = (async (input: string | URL, init?: RequestInit) => {
     const url = String(input);
     urls.push(url);
     const path = url.slice(BASE.length);
+    if (path === '/txs/hex') {
+      // The bulk read, as WhatsOnChain answers it: an error entry for a txid it does not have.
+      const { txids } = JSON.parse(String(init?.body)) as { txids: string[] };
+      return new Response(JSON.stringify(txids.map((txid) => (hex[txid] ? { txid, hex: hex[txid] } : { txid, error: 'unknown' }))), { status: 200 });
+    }
     const history = /^\/address\/[^/]+\/confirmed\/history(?:\?token=(.*))?$/.exec(path);
     if (history) return new Response(JSON.stringify(pages(history[1] === undefined ? null : decodeURIComponent(history[1]))), { status: 200 });
     if (/^\/address\/[^/]+\/unconfirmed\/history$/.test(path)) {

@@ -211,7 +211,7 @@ describe('WhatsOnChainReader bulk transaction reads', () => {
     ]);
   });
 
-  it('reads one at a time when the bulk read fails', async () => {
+  it('rejects when the bulk read fails, as any read does, rather than reading each of them one at a time', async () => {
     const hex = { [txidOf(1)]: mintTxHex('cairn'), [txidOf(2)]: mintTxHex('postern', ADDRESS) };
     const requests: string[] = [];
     const fetchFn = (async (input: string | URL, init?: RequestInit) => {
@@ -223,7 +223,7 @@ describe('WhatsOnChainReader bulk transaction reads', () => {
       return new Response(hex[path.slice(4, 68)], { status: 200 });
     }) as typeof fetch;
     const reader = new WhatsOnChainReader({ baseUrl: BASE, fetch: fetchFn, delay: async () => {} });
-    expect(await findLicence(PUBLIC_KEY_HEX, 'postern', { reader })).toMatchObject({ txid: txidOf(2) });
-    expect(requests.slice(2)).toEqual(['POST /txs/hex', `GET /tx/${txidOf(1)}/hex`, `GET /tx/${txidOf(2)}/hex`]);
+    await expect(findLicence(PUBLIC_KEY_HEX, 'postern', { reader })).rejects.toThrow('WhatsOnChain said 418');
+    expect(requests.slice(2)).toEqual(['POST /txs/hex']);
   });
 });
