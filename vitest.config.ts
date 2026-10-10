@@ -5,6 +5,8 @@ export default defineConfig({
   resolve: {
     alias: {
       'bsv-kit/bsv': fileURLToPath(new URL('./packages/bsv/src/index.ts', import.meta.url)),
+      'bsv-kit/speech/react': fileURLToPath(new URL('./packages/speech/src/react.tsx', import.meta.url)),
+      'bsv-kit/speech': fileURLToPath(new URL('./packages/speech/src/index.ts', import.meta.url)),
       'bsv-kit/testing/speech': fileURLToPath(new URL('./packages/testing/src/speech.ts', import.meta.url)),
       'bsv-kit/testing/mic': fileURLToPath(new URL('./packages/testing/src/mic.ts', import.meta.url)),
       'bsv-kit/testing': fileURLToPath(new URL('./packages/grist/src/testing.ts', import.meta.url)),

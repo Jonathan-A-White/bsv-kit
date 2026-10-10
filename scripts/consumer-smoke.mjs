@@ -5,6 +5,7 @@
 //   - 'bsv-kit/tips' imports and keeps a dismissal;
 //   - 'bsv-kit/composer' renders with the React the app installs, and its styles.css is packed;
 //   - 'bsv-kit/whats-new' renders with the same React, its styles.css is packed, and its import graph holds no other library.
+//   - 'bsv-kit/speech' speaks sentence by sentence through the honest fake, and 'bsv-kit/speech/react' renders its SpeakingBar with the same React; packages/speech/dist and its styles.css are packed.
 //   - 'bsv-kit/testing/speech' and 'bsv-kit/testing/mic' run in vitest the app installs (fake timers), by import and by init script.
 // The "fresh clone" is the working tree as it stands (tracked and untracked files, minus what git ignores),
 // committed into a scratch repository, so an edit not yet committed is smoke-tested too.
@@ -199,6 +200,58 @@ console.log('bsv-kit/whats-new renders');
 `,
   );
   console.log(run('node', ['whats-new.mjs'], app).trim());
+
+  // 10a. 'bsv-kit/speech' and 'bsv-kit/speech/react': packed (packages/speech/dist), resolved by the exports map; the engine speaks a
+  // text a sentence at a time into the honest fake, naming each sentence's language; the SpeakingBar renders with the app's React;
+  // neither reaches another bsv-kit library.
+  for (const file of ['index.js', 'engine.js', 'lang.js', 'react.js', 'styles.css']) {
+    if (!existsSync(join(installed, 'packages/speech/dist', file))) throw new Error(`packages/speech/dist/${file} is not packed`);
+  }
+  const speechSeen = new Set();
+  const walkSpeech = (file) => {
+    if (speechSeen.has(file)) return;
+    speechSeen.add(file);
+    for (const m of readFileSync(file, 'utf-8').matchAll(specifier)) {
+      const s = m[1] ?? m[2] ?? m[3];
+      if (/^(@bsv-kit\/|bsv-kit\/)/.test(s)) throw new Error(`${relative(installed, file)} imports ${s}`);
+      if (s.startsWith('.')) walkSpeech(resolve(dirname(file), s));
+    }
+  };
+  walkSpeech(join(installed, 'packages/speech/dist/index.js'));
+  walkSpeech(join(installed, 'packages/speech/dist/react.js'));
+  writeFileSync(
+    join(app, 'speech.mjs'),
+    `
+import { createElement } from 'react';
+import { renderToString } from 'react-dom/server';
+import { createRequire } from 'node:module';
+import { existsSync } from 'node:fs';
+import { installSpeech } from 'bsv-kit/testing/speech';
+import { speak, pause, resume, stop, getSpeech, isSupported } from 'bsv-kit/speech';
+import { SpeakingBar } from 'bsv-kit/speech/react';
+
+if (isSupported()) throw new Error('node has no speech synthesis');
+globalThis.window = globalThis;
+const fake = installSpeech(globalThis);
+await new Promise((r) => setTimeout(r, 100)); // the fake lists its voices
+if (!isSupported()) throw new Error('the fake is not seen');
+speak('One. Two. \u039a\u03b1\u03bb\u03b7\u03bc\u03ad\u03c1\u03b1 \u03c3\u03b1\u03c2.', { key: 'smoke' });
+if (getSpeech().count !== 3) throw new Error('not three sentences: ' + JSON.stringify(getSpeech()));
+if (fake.log.length !== 3 || fake.log[2].lang !== 'el-GR' || fake.log[0].lang !== 'en-US') throw new Error('languages: ' + JSON.stringify(fake.log.map((e) => e.lang)));
+if (!fake.log[2].voice) throw new Error('the Greek sentence has no voice');
+pause();
+if (getSpeech().status !== 'paused') throw new Error('not paused');
+resume();
+stop();
+if (getSpeech().status !== 'idle') throw new Error('not stopped');
+if (renderToString(createElement(SpeakingBar)) !== '') throw new Error('the bar shows with nothing speaking');
+const css = createRequire(import.meta.url).resolve('bsv-kit/speech/styles.css');
+if (!existsSync(css)) throw new Error('styles.css is not packed');
+fake.uninstall();
+console.log('bsv-kit/speech and bsv-kit/speech/react work');
+`,
+  );
+  console.log(run('node', ['speech.mjs'], app).trim());
 
   // 10. 'bsv-kit/testing/speech' and 'bsv-kit/testing/mic' in the vitest the app installs: packed (packages/testing/dist),
   // resolved by the exports map, and working under fake timers, by import and by the init-script strings for Playwright.

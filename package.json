@@ -1,7 +1,7 @@
 {
   "name": "bsv-kit",
   "version": "0.2.0",
-  "description": "Shared TypeScript libraries for the Governor's PWAs: @bsv-kit/bsv (key vault, door client, licence check), @bsv-kit/grist (send grist, poll the answer), @bsv-kit/tips (one-time tips, dismissed for good), @bsv-kit/composer (Postern's hold-to-talk message composer, a React component), @bsv-kit/whats-new (every app's What's new, a React package) and @bsv-kit/testing (honest speech and microphone fakes for an app's tests, vitest and Playwright).",
+  "description": "Shared TypeScript libraries for the Governor's PWAs: @bsv-kit/bsv (key vault, door client, licence check), @bsv-kit/grist (send grist, poll the answer), @bsv-kit/tips (one-time tips, dismissed for good), @bsv-kit/composer (Postern's hold-to-talk message composer, a React component), @bsv-kit/whats-new (every app's What's new, a React package), @bsv-kit/speech (Postern's read-aloud engine with Pause, Resume, Restart and Stop that keep the place, and a themeable SpeakingBar) and @bsv-kit/testing (honest speech and microphone fakes for an app's tests, vitest and Playwright).",
   "license": "MIT",
   "type": "module",
   "repository": {
@@ -50,6 +50,15 @@
       "default": "./packages/whats-new/dist/index.js"
     },
     "./whats-new/styles.css": "./packages/whats-new/dist/styles.css",
+    "./speech": {
+      "types": "./packages/speech/dist/index.d.ts",
+      "default": "./packages/speech/dist/index.js"
+    },
+    "./speech/react": {
+      "types": "./packages/speech/dist/react.d.ts",
+      "default": "./packages/speech/dist/react.js"
+    },
+    "./speech/styles.css": "./packages/speech/dist/styles.css",
     "./package.json": "./package.json"
   },
   "files": [
@@ -58,10 +67,10 @@
     "!**/*.tsbuildinfo"
   ],
   "scripts": {
-    "build": "tsc -b packages/bsv/tsconfig.build.json packages/grist/tsconfig.build.json packages/tips/tsconfig.build.json packages/composer/tsconfig.build.json packages/whats-new/tsconfig.build.json packages/testing/tsconfig.build.json && node -e \"for (const p of ['composer', 'whats-new']) require('node:fs').copyFileSync('packages/' + p + '/src/styles.css', 'packages/' + p + '/dist/styles.css')\"",
+    "build": "tsc -b packages/bsv/tsconfig.build.json packages/grist/tsconfig.build.json packages/tips/tsconfig.build.json packages/composer/tsconfig.build.json packages/whats-new/tsconfig.build.json packages/speech/tsconfig.build.json packages/testing/tsconfig.build.json && node -e \"for (const p of ['composer', 'whats-new', 'speech']) require('node:fs').copyFileSync('packages/' + p + '/src/styles.css', 'packages/' + p + '/dist/styles.css')\"",
     "prepare": "npm run build",
     "lint": "eslint .",
-    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p packages/composer/tsconfig.json --noEmit && tsc -p packages/whats-new/tsconfig.json --noEmit && tsc -p examples/door-demo/tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p packages/composer/tsconfig.json --noEmit && tsc -p packages/whats-new/tsconfig.json --noEmit && tsc -p packages/speech/tsconfig.json --noEmit && tsc -p examples/door-demo/tsconfig.json --noEmit",
     "test": "npm run check:personal && vitest run",
     "check:personal": "node scripts/check-personal.mjs",
     "smoke": "node scripts/consumer-smoke.mjs",
