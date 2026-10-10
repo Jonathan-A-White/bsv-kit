@@ -1,7 +1,7 @@
 # bsv-kit
 
 Shared TypeScript libraries for the Governor's PWAs, lifted from the working code in
-[Postern](https://github.com/Jonathan-A-White/postern). One repo, six separate libraries:
+[Postern](https://github.com/Jonathan-A-White/postern). One repo, seven separate libraries:
 
 - `@bsv-kit/bsv`: key vault, door client for signed Postern API calls, licence check.
 - `@bsv-kit/grist`: send grist with photos and recordings, poll the mill's answer (and a one-page read
@@ -17,12 +17,17 @@ Shared TypeScript libraries for the Governor's PWAs, lifted from the working cod
   What's new sheet after an update, the versions list for About, a Check for updates button, and the version link
   to `CHANGELOG.md` on GitHub; themed by CSS custom properties. It imports nothing from the other libraries. See
   [packages/whats-new](packages/whats-new/README.md).
+- `@bsv-kit/speech`: Postern's read-aloud engine: a text spoken a sentence at a time, Pause, Resume, Restart and Stop
+  that keep the place, a hidden page or a left screen pauses it, and every utterance names its language (Greek, Hebrew or
+  English, from its letters) and a voice for it. A React entry gives `useSpeaking(key)` and a themeable `SpeakingBar`.
+  It imports nothing from the other libraries. See [packages/speech](packages/speech/README.md).
 - `@bsv-kit/testing`: honest fakes for an app's tests, in vitest and in Playwright: a speech synthesiser and a
   microphone (getUserMedia, MediaRecorder, SpeechRecognition) that behave like Android Chrome in time. It imports
   nothing from the other libraries. See [packages/testing](packages/testing/README.md).
 
 No UI and no DOM live in bsv, grist or tips (and testing reads only the window it is handed); the composer and whats-new are the UI libraries, and need React 18 or later
-(`react`, `react-dom`: optional peer dependencies, so an app that does not use it needs no React). The example
+(`react`, `react-dom`: optional peer dependencies, so an app that does not use it needs no React). The speech engine uses the phone's `speechSynthesis` and the page's visibility, and needs React
+only for its `bsv-kit/speech/react` entry. The example
 page lives under `examples/` (see
 [examples/door-demo](examples/door-demo/README.md); `npm run demo` serves it).
 
@@ -50,6 +55,9 @@ import { tips } from 'bsv-kit/tips';
 import { Composer } from 'bsv-kit/composer'; // a React component
 import 'bsv-kit/composer/styles.css'; // its default look, themed by --bk-composer-* properties
 import { WhatsNewSheet } from 'bsv-kit/whats-new'; // a React component, with its own styles.css
+import { speak, pause, resume, restart, stop } from 'bsv-kit/speech'; // read aloud, framework-free
+import { SpeakingBar, useSpeaking } from 'bsv-kit/speech/react'; // the bar and the hook (React)
+import 'bsv-kit/speech/styles.css'; // the bar's default look, themed by --bk-speech-* properties
 import { fakePostern } from 'bsv-kit/testing'; // in tests only: a fake Postern behind a fetch
 import { installSpeech } from 'bsv-kit/testing/speech'; // in tests only: an honest speechSynthesis
 import { installMic, clips } from 'bsv-kit/testing/mic'; // in tests only: an honest microphone, recorder and recogniser
@@ -67,6 +75,8 @@ Postern's wire formats are the law; each module is lifted from the Postern file 
 | `bsv-kit/grist`  | `grist`   | send grist with photos, poll the answer      | `send.ts`, `attachments.ts`, `talk.ts`         |
 | `bsv-kit/tips`   | `tips`    | one-time tips, dismissed for good            | (new; not from Postern)                        |
 | `bsv-kit/whats-new` | `WhatsNewSheet`, `summarise`, ... | What's new for every app: summary, one-time sheet, list, Check for updates (React) | (new; not from Postern) |
+| `bsv-kit/speech` | `speak`, `pause`, `resume`, `restart`, `stop`, ... | read aloud a sentence at a time, keeping the place; language and voice per utterance | `speech.ts` |
+| `bsv-kit/speech/react` | `SpeakingBar`, `useSpeaking`, `useSpeech` | the one bar for anything read aloud, and the hook a speaker button reads (React) | `src/cockpit/`: `SpeakingBar.tsx`, `useSpeaking.ts` |
 | `bsv-kit/testing`| `fakePostern` | TEST-ONLY fake backend for an app's tests | (the grist tests' own fake)                    |
 | `bsv-kit/testing/speech` | `installSpeech`, `speechInitScript` | TEST-ONLY honest speechSynthesis, vitest and Playwright | (new; not from Postern) |
 | `bsv-kit/testing/mic` | `installMic`, `micInitScript`, `clips` | TEST-ONLY honest getUserMedia, MediaRecorder and SpeechRecognition | (new; not from Postern) |
@@ -94,9 +104,9 @@ Runtime libraries (installed with the libraries):
 - [@scure/bip39](https://github.com/paulmillr/scure-bip39): BIP-39 recovery words for the key vault in `@bsv-kit/bsv`, by
   Paul Miller. Licence: [MIT](https://github.com/paulmillr/scure-bip39/blob/main/LICENSE). No changes. Kind: package.
 
-Runtime libraries the app brings (peer dependencies of the composer and whats-new only):
+Runtime libraries the app brings (peer dependencies of the composer, whats-new and speech's React entry only):
 
-- [React](https://react.dev): `react` and `react-dom`, the UI library `@bsv-kit/composer` and `@bsv-kit/whats-new` are written for (18 or later). Licence:
+- [React](https://react.dev): `react` and `react-dom`, the UI library `@bsv-kit/composer`, `@bsv-kit/whats-new` and `@bsv-kit/speech/react` are written for (18 or later). Licence:
   [MIT](https://github.com/facebook/react/blob/main/LICENSE). No changes. Kind: package.
 
 Outside services:
@@ -132,7 +142,7 @@ Projects and ideas we took:
 
 - [Postern](https://github.com/Jonathan-A-White/postern): the code and wire formats here are lifted from Postern's working code, which is
   the law for them. Licence: [MIT](https://github.com/Jonathan-A-White/postern/blob/main/LICENSE). Adapted into separate libraries with
-  no UI, no DOM and injected storage, but for the composer, which keeps Postern's UI and its tests and leaves Postern's own
+  no UI, no DOM and injected storage, but for the composer and the speech bar, which keep Postern's UI and its tests and leave Postern's own
   parts (threads, drafts, saved prompts) in Postern. Kind: idea.
 - [FFmpeg](https://ffmpeg.org): resampled and trimmed the test clips of `@bsv-kit/testing` once, to make them. Licence:
   [LGPL-2.1-or-later](https://ffmpeg.org/legal.html). Used as published. Kind: tool.
