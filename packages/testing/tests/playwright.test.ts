@@ -78,6 +78,32 @@ describe('the fakes in Chromium, installed by init script', () => {
     await page.close();
   }, 30_000);
 
+  it('with recorderType audio/wav, plays what it recorded in an <audio> element, as the default raw bytes cannot', async (ctx) => {
+    if (!browser) return ctx.skip();
+    const play = (type: string) => `(async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const parts = [];
+      recorder.ondataavailable = (e) => parts.push(e.data);
+      const stopped = new Promise((resolve) => (recorder.onstop = resolve));
+      recorder.start();
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      recorder.stop();
+      await stopped;
+      const audio = new Audio(URL.createObjectURL(new Blob(parts, { type: ${JSON.stringify(type)} })));
+      return new Promise((resolve) => {
+        audio.onerror = () => resolve('error');
+        audio.onloadedmetadata = () => resolve('ok:' + audio.duration.toFixed(1));
+      });
+    })()`;
+    await openPage([micInitScript({ recorderType: 'audio/wav' })]);
+    expect(await inPage<string>(play('audio/wav'))).toBe('ok:1.0');
+    await page.close();
+    await openPage([micInitScript()]);
+    expect(await inPage<string>(play('audio/webm;codecs=opus'))).toBe('error');
+    await page.close();
+  }, 30_000);
+
   it('hands over a stream and a recording, and a denied permission rejects with NotAllowedError', async (ctx) => {
     if (!browser) return ctx.skip();
     await openPage([micInitScript({ clip: clips.greek })]);

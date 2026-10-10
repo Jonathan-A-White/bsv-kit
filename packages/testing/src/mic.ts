@@ -56,7 +56,11 @@ export interface MicOptions {
   silenceMs?: number;
   /** How long a recogniser hears nothing before it errors 'no-speech'. Default 8000. */
   noSpeechMs?: number;
-  /** What MediaRecorder says its output is. Default 'audio/webm;codecs=opus', Android Chrome's. */
+  /**
+   * What MediaRecorder says its output is. Default 'audio/webm;codecs=opus', Android Chrome's: the bytes are then the stream's raw
+   * PCM, which no browser decodes. 'audio/wav' makes them a real WAV file (header and PCM) that an <audio> element plays, and
+   * makes isTypeSupported('audio/wav') true (it is false on Chrome).
+   */
   recorderType?: string;
   /** The input's name in the track and in enumerateDevices. */
   label?: string;
@@ -239,6 +243,7 @@ function mountMic(target: object, options: MicOptions & { clip: Clip }): MicFake
     info: ClipInfo;
     pcm: Uint8Array;
     frameBytes: number;
+    bits: number;
   }
   const wavs = new WeakMap<Clip, Wav>();
   const wavOf = (clip: Clip): Wav => {
@@ -269,7 +274,7 @@ function mountMic(target: object, options: MicOptions & { clip: Clip }): MicFake
     const pcm = bytes.subarray(start, end);
     const frameBytes = channels * (bits / 8);
     const durationMs = wholeMs((pcm.length / frameBytes / sampleRate) * 1000);
-    const wav = { info: { name: clip.name, lang: clip.lang, transcript: clip.transcript, sampleRate, channels, durationMs }, pcm, frameBytes };
+    const wav = { info: { name: clip.name, lang: clip.lang, transcript: clip.transcript, sampleRate, channels, durationMs }, pcm, frameBytes, bits };
     wavs.set(clip, wav);
     return wav;
   };
@@ -349,6 +354,26 @@ function mountMic(target: object, options: MicOptions & { clip: Clip }): MicFake
     elapsedMs() {
       return clock.now() - this.#openedAt;
     }
+    /** The 44-byte header of a PCM WAV file of this stream's format; `dataBytes` is the data's length, or null when it is not yet known (sizes 0xFFFFFFFF, as a streamed WAV says). */
+    wavHeader(dataBytes: number | null) {
+      const wav = wavOf(this.#clip);
+      const out = new Uint8Array(44);
+      const view = new DataView(out.buffer);
+      const tag = (at: number, text: string) => [...text].forEach((c, i) => (out[at + i] = c.charCodeAt(0)));
+      tag(0, 'RIFF');
+      view.setUint32(4, dataBytes === null ? 0xffffffff : 36 + dataBytes, true);
+      tag(8, 'WAVEfmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, wav.info.channels, true);
+      view.setUint32(24, wav.info.sampleRate, true);
+      view.setUint32(28, wav.info.sampleRate * wav.frameBytes, true);
+      view.setUint16(32, wav.frameBytes, true);
+      view.setUint16(34, wav.bits, true);
+      tag(36, 'data');
+      view.setUint32(40, dataBytes === null ? 0xffffffff : dataBytes, true);
+      return out;
+    }
     positionMs() {
       const wav = wavOf(this.#clip);
       return Math.min(wav.info.durationMs, Math.max(0, this.elapsedMs() - this.#silence));
@@ -419,10 +444,11 @@ function mountMic(target: object, options: MicOptions & { clip: Clip }): MicFake
   }
 
   // MediaRecorder
+  const isWav = (type: string) => /^audio\/(x-)?wav(e)?(;|$)/i.test(type);
   const recorders: Recorder[] = [];
   class Recorder extends Emitter {
     static isTypeSupported(type: string) {
-      return !type || /^audio\/webm(;|$)/i.test(type);
+      return !type || /^audio\/webm(;|$)/i.test(type) || (isWav(config.recorderType) && isWav(type));
     }
     readonly stream: Stream;
     readonly mimeType: string;
@@ -446,9 +472,16 @@ function mountMic(target: object, options: MicOptions & { clip: Clip }): MicFake
       this.mimeType = recorderOptions.mimeType || config.recorderType;
       recorders.push(this);
     }
-    #send(fromMs: number, toMs: number) {
+    #sent = false;
+    // A WAV recording is one file whose chunks are cut from it: the first chunk carries the header. When that chunk is also the
+    // last (no timeslice, or stop() before the first slice), the header says the true length; otherwise the length is not yet
+    // known and the header says so, as a streamed WAV does, which decoders read to the end of the file.
+    #send(fromMs: number, toMs: number, last = false) {
       const BlobCtor = (host.Blob ?? globalThis.Blob) as typeof Blob;
-      this.emit('dataavailable', { data: new BlobCtor([this.stream.read(fromMs, toMs)], { type: this.mimeType }) });
+      const pcm = this.stream.read(fromMs, toMs);
+      const parts: Uint8Array[] = isWav(this.mimeType) && !this.#sent ? [this.stream.wavHeader(last ? pcm.length : null), pcm] : [pcm];
+      this.#sent = true;
+      this.emit('dataavailable', { data: new BlobCtor(parts, { type: this.mimeType }) });
     }
     #flush() {
       const to = this.stream.elapsedMs();
@@ -483,7 +516,7 @@ function mountMic(target: object, options: MicOptions & { clip: Clip }): MicFake
       const from = this.#cursor;
       const to = wasPaused ? from : this.stream.elapsedMs();
       later(0, () => {
-        this.#send(from, to);
+        this.#send(from, to, true);
         this.emit('stop');
       });
     }

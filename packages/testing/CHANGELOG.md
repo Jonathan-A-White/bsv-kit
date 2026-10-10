@@ -2,6 +2,10 @@
 
 Newest first. Breaking changes come first in a release, each with its migration in one sentence.
 
+## Unreleased
+
+- New: `installMic({ recorderType: 'audio/wav' })` (and `micInitScript`) makes the recorder's bytes a real WAV file, labelled `audio/wav`, which an `<audio>` element plays; `MediaRecorder.isTypeSupported('audio/wav')` is then true. The default is unchanged: raw PCM labelled `audio/webm;codecs=opus`, which Chromium cannot decode (mw-f1m3sd).
+
 ## 0.1.0 (2026-10-09)
 
 - New: `bsv-kit/testing/speech`: an honest `speechSynthesis` and `SpeechSynthesisUtterance` (mw-it6qk5.2). `speak()` queues; each

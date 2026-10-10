@@ -172,6 +172,57 @@ describe('MediaRecorder', () => {
   });
 });
 
+describe('MediaRecorder with recorderType audio/wav', () => {
+  type Rec = InstanceType<MicFake['MediaRecorder']>;
+  const text = (b: Uint8Array, at: number) => String.fromCharCode(...b.subarray(at, at + 4));
+  async function recordFor(holdMs: number, timeslice?: number) {
+    install({ recorderType: 'audio/wav' });
+    const stream = await open();
+    const rec: Rec = new mic.MediaRecorder(stream);
+    const chunks: Blob[] = [];
+    rec.ondataavailable = (e) => chunks.push(e.data);
+    rec.start(timeslice);
+    await vi.advanceTimersByTimeAsync(holdMs);
+    rec.stop();
+    await vi.advanceTimersByTimeAsync(10);
+    return { stream, chunks, bytes: new Uint8Array(await new Blob(chunks).arrayBuffer()) };
+  }
+
+  it('hands over a WAV file Chromium can decode: labelled audio/wav, RIFF/WAVE, the stream sample rate, the length of the hold', async () => {
+    const { stream, chunks, bytes } = await recordFor(700);
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0].type).toBe('audio/wav');
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    expect(text(bytes, 0)).toBe('RIFF');
+    expect(text(bytes, 8)).toBe('WAVE');
+    expect(text(bytes, 12)).toBe('fmt ');
+    expect(view.getUint16(20, true)).toBe(1);
+    expect(view.getUint16(22, true)).toBe(1);
+    expect(view.getUint32(24, true)).toBe(16000);
+    expect(view.getUint16(34, true)).toBe(16);
+    expect(text(bytes, 36)).toBe('data');
+    const dataBytes = 700 * 16 * 2;
+    expect(view.getUint32(40, true)).toBe(dataBytes);
+    expect(view.getUint32(4, true)).toBe(bytes.length - 8);
+    expect(bytes.length).toBe(44 + dataBytes);
+    expect(bytes.subarray(44)).toEqual(stream.read(0, 700));
+  });
+
+  it('keeps one header when the recording comes in slices: the chunks together are one WAV of the whole hold', async () => {
+    const { stream, bytes } = await recordFor(600, 250);
+    expect(text(bytes, 0)).toBe('RIFF');
+    expect(text(bytes, 8)).toBe('WAVE');
+    expect(bytes.length).toBe(44 + 600 * 16 * 2);
+    expect(bytes.subarray(44)).toEqual(stream.read(0, 600));
+  });
+
+  it('says it supports audio/wav, which the default recorder (Android Chrome) does not', () => {
+    expect(mic.MediaRecorder.isTypeSupported('audio/wav')).toBe(false);
+    install({ recorderType: 'audio/wav' });
+    expect(mic.MediaRecorder.isTypeSupported('audio/wav')).toBe(true);
+  });
+});
+
 describe('SpeechRecognition', () => {
   type Rec = InstanceType<MicFake['SpeechRecognition']>;
   /** Starts a recogniser and writes what it does, each with the ms since start(), into `log`. */
