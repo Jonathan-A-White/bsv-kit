@@ -29,7 +29,7 @@ No UI and no DOM live in bsv, grist or tips (and testing reads only the window i
 (`react`, `react-dom`: optional peer dependencies, so an app that does not use it needs no React). The speech engine uses the phone's `speechSynthesis` and the page's visibility, and needs React
 only for its `bsv-kit/speech/react` entry. The example
 page lives under `examples/` (see
-[examples/door-demo](examples/door-demo/README.md); `npm run demo` serves it).
+[examples/door-demo](examples/door-demo/README.md); `npm run demo` serves it) and [examples/composer-demo](examples/composer-demo/README.md) (the composer on a phone-sized page).
 
 ## Install
 

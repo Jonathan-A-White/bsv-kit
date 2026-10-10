@@ -70,7 +70,7 @@
     "build": "tsc -b packages/bsv/tsconfig.build.json packages/grist/tsconfig.build.json packages/tips/tsconfig.build.json packages/composer/tsconfig.build.json packages/whats-new/tsconfig.build.json packages/speech/tsconfig.build.json packages/testing/tsconfig.build.json && node -e \"for (const p of ['composer', 'whats-new', 'speech']) require('node:fs').copyFileSync('packages/' + p + '/src/styles.css', 'packages/' + p + '/dist/styles.css')\"",
     "prepare": "npm run build",
     "lint": "eslint .",
-    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p packages/composer/tsconfig.json --noEmit && tsc -p packages/whats-new/tsconfig.json --noEmit && tsc -p packages/speech/tsconfig.json --noEmit && tsc -p examples/door-demo/tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p packages/composer/tsconfig.json --noEmit && tsc -p packages/whats-new/tsconfig.json --noEmit && tsc -p packages/speech/tsconfig.json --noEmit && tsc -p examples/door-demo/tsconfig.json --noEmit && tsc -p examples/composer-demo/tsconfig.json --noEmit",
     "test": "npm run check:personal && vitest run",
     "check:personal": "node scripts/check-personal.mjs",
     "smoke": "node scripts/consumer-smoke.mjs",

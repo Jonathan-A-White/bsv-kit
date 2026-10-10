@@ -34,6 +34,8 @@ packages/testing/  @bsv-kit/testing: honest speech and microphone fakes for an a
   each: package.json, src/, tests/, README.md, tsconfig.build.json
 tsconfig.base.json  strict settings shared by all
 tsconfig.json       typecheck of src + tests, composer, whats-new and speech excepted (grist's 'bsv-kit/bsv' resolves to bsv's source; so does vitest)
+examples/composer-demo/  Vite page (workspace, not packed) with the composer on a phone-sized page; tests/shot.test.ts builds it, drives it in Chromium at
+                    390x844 and measures the Send arrow beside Hold to talk (COMPOSER_SHOT_DIR=<dir> also writes the shot; the committed one is in shots/)
 examples/door-demo/  Vite page (workspace, not packed) that makes a key, checks a licence and sends a grist; npm run demo
 scripts/check-personal.mjs  fails on a personal host, home path or public key in a tracked file (npm run check:personal)
 scripts/credits.mjs  the README's Credits check: opens with Newton's line, every credit has a link-text name and a licence link, every package.json dependency is credited, every credit has a `Kind:`, a `Kind: package.` credit fails once that package is no longer a dependency, and every bundled font or data file is named by a font or data credit (adding or removing a source changes its credit in the same commit)
