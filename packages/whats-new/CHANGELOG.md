@@ -2,6 +2,13 @@
 
 Newest first. Breaking changes come first in a release, each with its migration in one sentence.
 
+## 0.1.1 (2026-10-10)
+
+- Fixed: Check for updates no longer says "Up to date" when nothing was checked (mw-s061bg.12). Offline
+  (`navigator.onLine` false), or when the worker's script cannot be fetched from the server, it says "Couldn't check"
+  and the button tries again; with no service worker to ask it says "Updates are not checked here" (new label
+  `unavailable`). New optional `fetch` prop and `UpdateRegistration.active`. "Up to date" now needs the server to have answered.
+
 ## 0.1.0 (2026-10-09)
 
 - New: `useChangelog`, `summarise`, `UpdateSummary`, `WhatsNewSheet`, `WhatsNewList`, `CheckForUpdates` and

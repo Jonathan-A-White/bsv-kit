@@ -24,7 +24,10 @@ export interface CheckLabels {
   upToDate: string;
   /** Shown beside the button when the app gave no `updateReady` of its own. */
   updateReady: string;
+  /** Offline, or the server could not be reached: nothing was checked. */
   failed: string;
+  /** There is no service worker to ask (a browser without one, or the app has none registered). */
+  unavailable: string;
 }
 
 export const DEFAULT_CHECK_LABELS: CheckLabels = {
@@ -33,4 +36,5 @@ export const DEFAULT_CHECK_LABELS: CheckLabels = {
   upToDate: 'Up to date',
   updateReady: 'Update ready',
   failed: "Couldn't check",
+  unavailable: 'Updates are not checked here',
 };

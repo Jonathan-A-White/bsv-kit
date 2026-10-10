@@ -271,21 +271,112 @@ describe('CheckForUpdates', () => {
     expect(screen.getByRole('button', { name: 'Check for updates' })).toHaveProperty('disabled', false);
   });
 
-  it('finds the registration itself when the app gives none, and says Up to date when there is no service worker', async () => {
+  it('finds the registration itself when the app gives none', async () => {
     const reg = fakeRegistration();
     const getRegistration = vi.fn(async () => reg.reg);
     Object.defineProperty(navigator, 'serviceWorker', { value: { getRegistration }, configurable: true });
-    render(<CheckForUpdates />);
+    try {
+      render(<CheckForUpdates />);
+      fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }));
+      await waitFor(() => expect(reg.update).toHaveBeenCalled());
+      await act(async () => reg.finish());
+      expect(await screen.findByText('Up to date')).toBeTruthy();
+    } finally {
+      delete (navigator as unknown as Record<string, unknown>).serviceWorker;
+    }
+  });
+
+  it('does not say Up to date when there is no service worker: nothing was checked', async () => {
+    const getRegistration = vi.fn(async () => undefined);
+    Object.defineProperty(navigator, 'serviceWorker', { value: { getRegistration }, configurable: true });
+    try {
+      render(<CheckForUpdates />);
+      fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }));
+      expect(await screen.findByText('Updates are not checked here')).toBeTruthy();
+      expect(screen.queryByText('Up to date')).toBeNull();
+      expect(screen.getByRole('button', { name: 'Check for updates' })).toHaveProperty('disabled', false);
+      cleanup();
+      delete (navigator as unknown as Record<string, unknown>).serviceWorker; // a browser with no service workers at all
+      render(<CheckForUpdates />);
+      fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }));
+      expect(await screen.findByText('Updates are not checked here')).toBeTruthy();
+      expect(screen.queryByText('Up to date')).toBeNull();
+    } finally {
+      delete (navigator as unknown as Record<string, unknown>).serviceWorker;
+    }
+  });
+
+  it('does not say Up to date when the app gave a registration of null', async () => {
+    render(<CheckForUpdates registration={null} />);
     fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }));
-    await waitFor(() => expect(reg.update).toHaveBeenCalled());
-    await act(async () => reg.finish());
-    expect(await screen.findByText('Up to date')).toBeTruthy();
-    cleanup();
-    getRegistration.mockResolvedValue(undefined as never);
-    render(<CheckForUpdates />);
-    fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }));
-    expect(await screen.findByText('Up to date')).toBeTruthy();
-    delete (navigator as unknown as Record<string, unknown>).serviceWorker;
+    expect(await screen.findByText('Updates are not checked here')).toBeTruthy();
+    expect(screen.queryByText('Up to date')).toBeNull();
+  });
+
+  describe('offline', () => {
+    const setOnLine = (value: boolean) => Object.defineProperty(navigator, 'onLine', { value, configurable: true });
+    afterEach(() => delete (navigator as unknown as Record<string, unknown>).onLine);
+
+    it("says it could not check when the phone is offline, though update() resolves, and lets him try again", async () => {
+      setOnLine(false);
+      const reg = { waiting: null, installing: null, update: vi.fn(async () => {}) } as unknown as UpdateRegistration;
+      render(<CheckForUpdates registration={reg} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }));
+      expect(await screen.findByText("Couldn't check")).toBeTruthy();
+      expect(screen.queryByText('Up to date')).toBeNull();
+      expect(screen.getByRole('button', { name: 'Check for updates' })).toHaveProperty('disabled', false);
+    });
+
+    it('checks again once he is back online', async () => {
+      setOnLine(false);
+      const reg = { waiting: null, installing: null, update: vi.fn(async () => {}) } as unknown as UpdateRegistration;
+      render(<CheckForUpdates registration={reg} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }));
+      expect(await screen.findByText("Couldn't check")).toBeTruthy();
+      setOnLine(true);
+      fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }));
+      expect(await screen.findByText('Up to date')).toBeTruthy();
+      expect(screen.queryByText("Couldn't check")).toBeNull();
+    });
+  });
+
+  describe('asking the server', () => {
+    const regAt = (waiting: unknown = null) =>
+      ({ waiting, installing: null, active: { scriptURL: 'https://app.example/sw.js' }, update: vi.fn(async () => {}) }) as unknown as UpdateRegistration;
+
+    it("says could not check when the worker's script cannot be fetched, though update() resolves", async () => {
+      const fetchFn = vi.fn(async () => {
+        throw new TypeError('Failed to fetch');
+      });
+      render(<CheckForUpdates registration={regAt()} fetch={fetchFn as unknown as typeof fetch} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }));
+      expect(await screen.findByText("Couldn't check")).toBeTruthy();
+      expect(screen.queryByText('Up to date')).toBeNull();
+      expect(fetchFn).toHaveBeenCalledWith('https://app.example/sw.js', { cache: 'no-store' });
+    });
+
+    it('says could not check when the server answers with an error', async () => {
+      const fetchFn = vi.fn(async () => ({ ok: false, status: 503 }) as Response);
+      render(<CheckForUpdates registration={regAt()} fetch={fetchFn as unknown as typeof fetch} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }));
+      expect(await screen.findByText("Couldn't check")).toBeTruthy();
+    });
+
+    it('says Up to date when the server answered and nothing is waiting', async () => {
+      const fetchFn = vi.fn(async () => ({ ok: true, status: 200 }) as Response);
+      render(<CheckForUpdates registration={regAt()} fetch={fetchFn as unknown as typeof fetch} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }));
+      expect(await screen.findByText('Up to date')).toBeTruthy();
+    });
+
+    it('still reports a waiting build when the server cannot be reached now', async () => {
+      const fetchFn = vi.fn(async () => {
+        throw new TypeError('Failed to fetch');
+      });
+      render(<CheckForUpdates registration={regAt({})} fetch={fetchFn as unknown as typeof fetch} updateReady={<span>Update ready</span>} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }));
+      expect(await screen.findByText('Update ready')).toBeTruthy();
+    });
   });
 
   it('takes its words from the app', async () => {

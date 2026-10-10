@@ -1,5 +1,6 @@
 // CheckForUpdates: a button that asks the service worker for a new build: 'Checking…', then 'Up to date' or the
-// app's own Update ready (the node it passes as `updateReady`: its banner or button).
+// app's own Update ready (the node it passes as `updateReady`: its banner or button). 'Up to date' is said only when
+// the server was reached and had nothing new: offline, an unreachable server or no service worker never say it.
 import { useState, type ReactNode } from 'react';
 import { DEFAULT_CHECK_LABELS, type CheckLabels } from './labels.js';
 
@@ -12,6 +13,8 @@ export interface UpdateWorker {
 export interface UpdateRegistration {
   update(): Promise<unknown>;
   readonly waiting?: unknown;
+  /** The running worker; its `scriptURL` is fetched after update() to know the server was reached. */
+  readonly active?: { readonly scriptURL?: string } | null;
   readonly installing?: UpdateWorker | null;
 }
 
@@ -24,9 +27,11 @@ export interface CheckForUpdatesProps {
   onUpdateReady?: () => void;
   labels?: Partial<CheckLabels>;
   className?: string;
+  /** Used to reach the server after update(). Default: the page's fetch. */
+  fetch?: typeof fetch;
 }
 
-type Phase = 'idle' | 'checking' | 'upToDate' | 'ready' | 'failed';
+type Phase = 'idle' | 'checking' | 'upToDate' | 'ready' | 'failed' | 'unavailable';
 
 /** How long a build found while checking may take to install before the answer is given from what is waiting. */
 const INSTALL_WAIT_MS = 30_000;
@@ -34,6 +39,18 @@ const INSTALL_WAIT_MS = 30_000;
 async function currentRegistration(): Promise<UpdateRegistration | null> {
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return null;
   return (await navigator.serviceWorker.getRegistration()) ?? null;
+}
+
+const offline = () => typeof navigator !== 'undefined' && navigator.onLine === false;
+
+/** Throws unless the server answers for the worker's script: update() resolves offline, so it proves nothing alone. */
+async function reachServer(registration: UpdateRegistration, fetchFn: typeof fetch | undefined): Promise<void> {
+  if (offline()) throw new Error('offline');
+  const url = registration.active?.scriptURL;
+  const get = fetchFn ?? (typeof fetch === 'function' ? fetch : undefined);
+  if (!url || !get) return;
+  const answer = await get(url, { cache: 'no-store' });
+  if (!answer.ok) throw new Error(`server answered ${answer.status}`);
 }
 
 /** Resolves once a build that is installing has stopped installing (it is then waiting, or it failed). */
@@ -54,7 +71,7 @@ function installed(registration: UpdateRegistration): Promise<void> {
   });
 }
 
-export function CheckForUpdates({ registration, updateReady, onUpdateReady, labels, className }: CheckForUpdatesProps) {
+export function CheckForUpdates({ registration, updateReady, onUpdateReady, labels, className, fetch: fetchFn }: CheckForUpdatesProps) {
   const words = { ...DEFAULT_CHECK_LABELS, ...labels };
   const [phase, setPhase] = useState<Phase>('idle');
 
@@ -63,15 +80,17 @@ export function CheckForUpdates({ registration, updateReady, onUpdateReady, labe
     try {
       const reg = registration ?? (await currentRegistration());
       if (!reg) {
-        setPhase('upToDate');
+        setPhase('unavailable');
         return;
       }
+      if (offline()) throw new Error('offline');
       await reg.update();
       await installed(reg);
       if (reg.waiting) {
         setPhase('ready');
         onUpdateReady?.();
       } else {
+        await reachServer(reg, fetchFn);
         setPhase('upToDate');
       }
     } catch {
@@ -87,6 +106,7 @@ export function CheckForUpdates({ registration, updateReady, onUpdateReady, labe
       <span className="bk-whats-new__status" role="status">
         {phase === 'upToDate' ? words.upToDate : null}
         {phase === 'failed' ? words.failed : null}
+        {phase === 'unavailable' ? words.unavailable : null}
         {phase === 'ready' ? (updateReady ?? words.updateReady) : null}
       </span>
     </div>
