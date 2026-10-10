@@ -231,6 +231,22 @@ describe('voices', () => {
   });
 });
 
+describe('voices are as stable as a phone gives them', () => {
+  it('getVoices returns the same array and the same voice objects on every call until voiceschanged', async () => {
+    const before = fake.synth.getVoices();
+    expect(fake.synth.getVoices()).toBe(before);
+    await vi.advanceTimersByTimeAsync(50);
+    const after = fake.synth.getVoices();
+    expect(after).not.toBe(before);
+    expect(after.length).toBeGreaterThan(0);
+    const again = fake.synth.getVoices();
+    expect(again).toBe(after);
+    again.forEach((v, i) => expect(v).toBe(after[i]));
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(fake.synth.getVoices()).toBe(after);
+  });
+});
+
 describe('the log', () => {
   it('says what was spoken, when it was queued, started and ended, and how it went', async () => {
     await vi.advanceTimersByTimeAsync(1000);

@@ -202,7 +202,8 @@ export function installSpeech(target: object = globalThis, options: SpeechOption
   const queue: { u: Utterance; entry: SpokenEntry }[] = [];
   let current: Current | null = null;
   let paused = false;
-  let voicesReady = false;
+  // The same array, of the same voice objects, until voiceschanged: as a phone's list is, so a useSyncExternalStore reader settles.
+  let voiceList: FakeVoice[] = [];
 
   const send = (u: Utterance, type: string, extra: Partial<FakeSpeechEvent> = {}, elapsedMs = 0) => {
     u.dispatchEvent({ type, target: u, utterance: u, charIndex: 0, charLength: 0, elapsedTime: elapsedMs / 1000, name: '', ...extra } as FakeSpeechEvent);
@@ -339,13 +340,13 @@ export function installSpeech(target: object = globalThis, options: SpeechOption
       }
     }
     getVoices() {
-      return voicesReady ? config.voices.map((v) => ({ ...v })) : [];
+      return voiceList;
     }
   }
 
   const synth = new Synth();
   const voicesTimer = clock.setTimeout(() => {
-    voicesReady = true;
+    voiceList = config.voices.map((v) => ({ ...v }));
     synth.dispatchEvent({ type: 'voiceschanged', target: synth } as FakeSpeechEvent);
   }, config.voicesDelayMs);
 
