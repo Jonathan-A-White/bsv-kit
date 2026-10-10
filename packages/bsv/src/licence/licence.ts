@@ -63,6 +63,18 @@ export interface LicenceOptions {
   graceMs?: number;
   /** The time now in milliseconds; defaults to Date.now. */
   now?: () => number;
+  /** Keeps the raw transactions a check reads, so the next check reads only what is new (see TransactionCache). */
+  txCache?: TransactionCache;
+}
+
+/**
+ * Where an app keeps raw transactions between checks (IndexedDB, say). A transaction never changes, so a
+ * kept one is good for ever; a copy that is not the transaction its txid names is read again, and a cache
+ * that fails to read or to keep is passed over: the chain is the source of truth.
+ */
+export interface TransactionCache {
+  get(txid: string): Promise<string | undefined> | string | undefined;
+  set(txid: string, hex: string): Promise<void> | void;
 }
 
 /** The testnet address a License locked to this public key would show. */
@@ -78,22 +90,79 @@ function decodePayload(record: TypedRecordInTransaction): Record<string, unknown
   }
 }
 
+/** The transactions one check reads, each read once: from those it has, else the app's cache, else the reader
+ * (in bulk when it can, as the histories are long; one at a time for what the bulk read did not bring). */
+class Transactions {
+  private readonly known = new Map<string, string>();
+
+  constructor(
+    private readonly reader: ChainReader,
+    private readonly cache: TransactionCache | undefined,
+  ) {}
+
+  async load(txids: readonly string[]): Promise<void> {
+    const missing: string[] = [];
+    for (const txid of new Set(txids)) {
+      if (this.known.has(txid)) continue;
+      const cached = await this.cached(txid);
+      if (cached === undefined) missing.push(txid);
+      else this.known.set(txid, cached);
+    }
+    if (missing.length > 1 && this.reader.getTransactionHexes) {
+      let found = new Map<string, string>();
+      try {
+        found = await this.reader.getTransactionHexes(missing);
+      } catch {
+        // The bulk read is a shortcut: what it did not bring is read one at a time below.
+      }
+      for (const txid of missing) {
+        const hex = found.get(txid);
+        if (hex) await this.keep(txid, hex);
+      }
+    }
+    for (const txid of missing) {
+      if (!this.known.has(txid)) await this.keep(txid, await this.reader.getTransactionHex(txid));
+    }
+  }
+
+  async get(txid: string): Promise<string> {
+    await this.load([txid]);
+    return this.known.get(txid) as string;
+  }
+
+  private async cached(txid: string): Promise<string | undefined> {
+    if (!this.cache) return undefined;
+    try {
+      const hex = await this.cache.get(txid);
+      if (hex && Transaction.fromHex(hex).id('hex') === txid) return hex;
+    } catch {
+      // A cache that cannot be read, or a copy that does not parse, is read from the chain instead.
+    }
+    return undefined;
+  }
+
+  private async keep(txid: string, hex: string): Promise<void> {
+    this.known.set(txid, hex);
+    if (!this.cache) return;
+    try {
+      await this.cache.set(txid, hex);
+    } catch {
+      // Not kept: the next check reads it from the chain again.
+    }
+  }
+}
+
 /** Whether the transaction has an input unlocked by the issuer's key: a P2PKH scriptSig pushing that key and
  * spending an output P2PKH to it, so the network checked the signature (a key pushed over any other output
  * proves nothing). Postern backend's issuerCheck.signed. */
-async function signedBy(txHex: string, issuerKeyHex: string, reader: ChainReader, known: Map<string, string>): Promise<boolean> {
+async function signedBy(txHex: string, issuerKeyHex: string, txs: Transactions): Promise<boolean> {
   const issuerHash = Hash.hash160(Utils.toArray(issuerKeyHex, 'hex'));
   const tx = Transaction.fromHex(txHex);
   for (const input of tx.inputs) {
     const chunks = input.unlockingScript?.chunks ?? [];
     const pushed = chunks.length === 2 ? chunks[1].data : undefined;
     if (!pushed || Utils.toHex(pushed) !== issuerKeyHex || input.sourceTXID === undefined) continue;
-    let sourceHex = known.get(input.sourceTXID);
-    if (sourceHex === undefined) {
-      sourceHex = await reader.getTransactionHex(input.sourceTXID);
-      known.set(input.sourceTXID, sourceHex);
-    }
-    const output = Transaction.fromHex(sourceHex).outputs[input.sourceOutputIndex ?? 0];
+    const output = Transaction.fromHex(await txs.get(input.sourceTXID)).outputs[input.sourceOutputIndex ?? 0];
     const script = output?.lockingScript.toBinary();
     if (script?.length === 25 && script[0] === 0x76 && script[1] === 0xa9 && script[2] === 0x14 && script[23] === 0x88 && script[24] === 0xac) {
       if (Utils.toHex(script.slice(3, 23)) === Utils.toHex(issuerHash)) return true;
@@ -112,7 +181,7 @@ async function historyOf(address: string, reader: ChainReader) {
 }
 
 /** Every mint of the collections naming this address holder, and every origin a transfer or a revoke moved away. */
-async function scan(address: string, collections: readonly string[], reader: ChainReader, issuerKeyHex?: string) {
+async function scan(address: string, collections: readonly string[], reader: ChainReader, issuerKeyHex?: string, txCache?: TransactionCache) {
   const issuerAddress = issuerKeyHex ? addressForPublicKey(issuerKeyHex) : undefined;
   const own = await historyOf(address, reader);
   const issuerHistory = !issuerAddress ? [] : issuerAddress === address ? own : await historyOf(issuerAddress, reader);
@@ -120,30 +189,39 @@ async function scan(address: string, collections: readonly string[], reader: Cha
   const seen = new Set<string>();
   const history = [...own, ...issuerHistory].filter((entry) => !seen.has(entry.txid) && seen.add(entry.txid));
 
-  const known = new Map<string, string>();
+  const txs = new Transactions(reader, txCache);
+  await txs.load(history.map((entry) => entry.txid));
   const mints: FoundLicence[] = [];
   const transferred = new Set<string>();
+  const revokes: { origin: string; txHex: string }[] = [];
   for (const entry of history) {
-    const txHex = await reader.getTransactionHex(entry.txid);
-    known.set(entry.txid, txHex);
+    const txHex = await txs.get(entry.txid);
     for (const record of findTypedRecords(txHex)) {
       if (record.recordType === 'W') {
-        // The issuer's revoke: signed by the issuer and found in the issuer's own history.
+        // The issuer's revoke: signed by the issuer and found in the issuer's own history. Who signed it is
+        // checked below, and only for a revoke naming one of this holder's mints: no other can change the answer.
         if (!issuerKeyHex || !inIssuerHistory.has(entry.txid)) continue;
         const payload = decodePayload(record);
         if (payload?.kind !== 'revoke' || typeof payload.origin !== 'string') continue;
-        if (await signedBy(txHex, issuerKeyHex, reader, known)) transferred.add(payload.origin.toLowerCase());
+        revokes.push({ origin: payload.origin.toLowerCase(), txHex });
         continue;
       }
       const payload = decodePayload(record);
       if (!payload) continue;
       if (record.recordType === 'M' && typeof payload.collection === 'string' && typeof payload.holder === 'string') {
         if (!collections.includes(payload.collection) || payload.holder !== address) continue;
-        if (issuerKeyHex && !(await signedBy(txHex, issuerKeyHex, reader, known))) continue;
+        if (issuerKeyHex && !(await signedBy(txHex, issuerKeyHex, txs))) continue;
         mints.push({ txid: entry.txid, vout: 0, collection: payload.collection });
       } else if (record.recordType === 'TR' && typeof payload.origin === 'string' && typeof payload.to === 'string') {
         transferred.add(payload.origin);
       }
+    }
+  }
+  for (const mint of mints) {
+    const origin = `${mint.txid}:${mint.vout}`;
+    for (const revoke of revokes) {
+      if (transferred.has(origin)) break;
+      if (revoke.origin === origin && issuerKeyHex && (await signedBy(revoke.txHex, issuerKeyHex, txs))) transferred.add(origin);
     }
   }
 
@@ -183,7 +261,7 @@ export async function findLicenceForAddress(
   options: LicenceOptions = {},
 ): Promise<FoundLicence | null> {
   const reader = options.reader ?? new WhatsOnChainReader();
-  return (await scan(address, asList(collection), reader, options.issuer?.toLowerCase())).live;
+  return (await scan(address, asList(collection), reader, options.issuer?.toLowerCase(), options.txCache)).live;
 }
 
 /** Whether the key holds a mint in the collection with no later transfer. */
@@ -204,7 +282,7 @@ export async function licenceStatus(
   const reader = options.reader ?? new WhatsOnChainReader();
   const now = (options.now ?? Date.now)();
   const checkedAt = new Date(now).toISOString();
-  const { live, moved } = await scan(addressForPublicKey(publicKeyHex), asList(collection), reader, options.issuer?.toLowerCase());
+  const { live, moved } = await scan(addressForPublicKey(publicKeyHex), asList(collection), reader, options.issuer?.toLowerCase(), options.txCache);
 
   if (live) return { state: 'held', outpoint: { txid: live.txid, vout: live.vout }, collection: live.collection, checkedAt };
   const { pending } = options;

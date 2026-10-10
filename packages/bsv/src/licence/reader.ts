@@ -1,5 +1,5 @@
-// The chain reader port: the three WhatsOnChain reads Postern's licence check makes, and nothing else.
-// Lifted from the read side of spell-forge-bsv's ChainProvider.
+// The chain reader port: the three WhatsOnChain reads Postern's licence check makes, and an optional bulk
+// read of transactions. Lifted from the read side of spell-forge-bsv's ChainProvider.
 
 export interface AddressHistoryEntry {
   txid: string;
@@ -13,4 +13,7 @@ export interface ChainReader {
   getUnconfirmedAddressHistory?(address: string): Promise<AddressHistoryEntry[]>;
   /** The raw transaction, as hex. */
   getTransactionHex(txid: string): Promise<string>;
+  /** Many raw transactions at once, by txid (WhatsOnChain's /txs/hex, 20 a request). A txid it could not read
+   * is left out of the map, and the licence check asks getTransactionHex for it. */
+  getTransactionHexes?(txids: readonly string[]): Promise<Map<string, string>>;
 }
