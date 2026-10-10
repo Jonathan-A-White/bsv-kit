@@ -1,7 +1,7 @@
 // The changelog the app ships (changelog.json: an array, newest first, of { version, date, story, kind, text }):
 // what is new after a version, counted for the Update ready banner, and the link to CHANGELOG.md on GitHub.
 import { describe, expect, it, vi } from 'vitest';
-import { compareVersions, fetchChangelog, githubAnchor, parseChangelog, summarise, versionLink, versionsSince } from '../src/index.js';
+import { compareVersions, fetchChangelog, githubAnchor, linkedVersion, parseChangelog, summarise, versionLink, versionsSince } from '../src/index.js';
 import { CHANGELOG } from './support/fixture.js';
 
 describe('compareVersions', () => {
@@ -77,6 +77,45 @@ describe('versionLink', () => {
 
   it('links to the file without an anchor when no version is given', () => {
     expect(versionLink({ repo: 'a/b', public: true })).toBe('https://github.com/a/b/blob/main/CHANGELOG.md');
+  });
+
+  describe('given the versions the changelog lists', () => {
+    const listed = ['0.1.15', '0.1.13', '0.1.9'];
+    const repo = 'Jonathan-A-White/lampas';
+
+    it('links to the newest listed version at or below the running one, when the running one wrote no entry', () => {
+      expect(versionLink({ repo, public: true, version: '0.1.16', listed })).toBe(
+        'https://github.com/Jonathan-A-White/lampas/blob/main/CHANGELOG.md#0115',
+      );
+      expect(linkedVersion('0.1.16', listed)).toBe('0.1.15');
+    });
+
+    it('compares by number and does not care about the list order', () => {
+      expect(linkedVersion('0.1.52', ['0.1.9', '0.1.51', '0.1.49'])).toBe('0.1.51');
+      expect(linkedVersion('0.1.14', ['0.1.9', '0.1.15', '0.1.13'])).toBe('0.1.13');
+    });
+
+    it("links to the running version's own heading when it is listed", () => {
+      expect(versionLink({ repo, public: true, version: '0.1.13', listed })).toBe(
+        'https://github.com/Jonathan-A-White/lampas/blob/main/CHANGELOG.md#0113',
+      );
+      expect(linkedVersion('0.1.13', listed)).toBe('0.1.13');
+    });
+
+    it('links to the file without an anchor when no listed version is at or below the running one', () => {
+      expect(versionLink({ repo, public: true, version: '0.1.2', listed })).toBe('https://github.com/Jonathan-A-White/lampas/blob/main/CHANGELOG.md');
+      expect(linkedVersion('0.1.2', listed)).toBeUndefined();
+      expect(linkedVersion('0.1.2', [])).toBeUndefined();
+    });
+
+    it('behaves as before with no list: the running version is the anchor', () => {
+      expect(versionLink({ repo, public: true, version: '0.1.16' })).toBe('https://github.com/Jonathan-A-White/lampas/blob/main/CHANGELOG.md#0116');
+      expect(linkedVersion('0.1.16')).toBe('0.1.16');
+    });
+
+    it('is still null for a private repo', () => {
+      expect(versionLink({ repo, public: false, version: '0.1.16', listed })).toBeNull();
+    });
   });
 
   it("makes GitHub's anchor: lower case, punctuation dropped, spaces to hyphens", () => {

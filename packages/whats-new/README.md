@@ -16,7 +16,7 @@ const entries = useChangelog(import.meta.env.BASE_URL);                         
 <WhatsNewSheet entries={entries} version={APP_VERSION} storageKey="myapp.lastSeenVersion" />  // 2: once after an update
 <WhatsNewList entries={entries} />                                                       // 3: Settings / About
 <CheckForUpdates updateReady={<UpdateReadyBanner />} />                                  // 4: the button
-<a href={versionLink({ repo: 'me/myapp', public: true, version: APP_VERSION }) ?? '#'}>{APP_VERSION}</a> // 5: the version
+<a href={versionLink({ repo: 'me/myapp', public: true, version: APP_VERSION, listed: entries.map((e) => e.version) }) ?? '#'}>{APP_VERSION}</a> // 5: the version
 ```
 
 `versionLink` comes from the same import. `APP_VERSION` is the app's own build version (its `package.json` version).
@@ -48,7 +48,8 @@ then hides, and the app carries on.
 | `<WhatsNewList entries>` | Every version, its date and its lines, for Settings or About. |
 | `<CheckForUpdates>` | A button calling `registration.update()`. `registration` is optional: it asks `navigator.serviceWorker.getRegistration()`. Its states, each a `labels` key: **Checking…** (`checking`) while it asks; **Up to date** (`upToDate`) only when the server answered (it fetches the worker's script, `registration.active.scriptURL`, with `cache: 'no-store'`; `fetch` swaps the page's fetch) and nothing is waiting; `updateReady` (the app's own Update ready node, default label `updateReady`) when a build is waiting, and `onUpdateReady` is called; **Couldn't check** (`failed`) when the phone is offline (`navigator.onLine` false), the server cannot be reached or answers an error, or `update()` rejects; **Updates are not checked here** (`unavailable`) when there is no service worker to ask. After either of the last two the button is live again to try once more. `labels` replaces `check`, `checking`, `upToDate`, `updateReady`, `failed`, `unavailable`. |
 | `summarise(entries, fromVersion)` | `{ version, newCount, fixedCount, text, bannerText }` for the versions after `fromVersion`, or `null`. A count of none is left out: `0.5.9 · 3 fixed`. |
-| `versionLink({ repo, public, version })` | Public repo: `https://github.com/<repo>/blob/main/CHANGELOG.md#<anchor>`, where GitHub's anchor of `## 0.5.9` is `059`. Private repo: `null`, and the app opens the list. |
+| `versionLink({ repo, public, version, listed? })` | Public repo: `https://github.com/<repo>/blob/main/CHANGELOG.md#<anchor>`, where GitHub's anchor of `## 0.5.9` is `059`. Private repo: `null`, and the app opens the list. A version whose landing wrote no entry has no heading, so pass `listed`, the versions the changelog lists (`entries.map((e) => e.version)`, any order): the link goes to the newest listed version at or below `version` (to the file's top when none is). Without `listed` it goes to `version`, as before. |
+| `linkedVersion(version, listed?)` | The version that link lands on (`undefined` when none is at or below `version`). Name it in the link's words: `What changed up to ${linkedVersion(APP_VERSION, listed)}, on GitHub`. |
 | `versionsSince`, `compareVersions`, `githubAnchor`, `fetchChangelog`, `parseChangelog` | The functions behind them. Versions compare by number: 0.5.10 is after 0.5.9. |
 
 Opened from the banner, the sheet stores nothing, so after the update starts it shows once more for the versions

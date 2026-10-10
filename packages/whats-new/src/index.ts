@@ -4,6 +4,7 @@ export {
   compareVersions,
   fetchChangelog,
   githubAnchor,
+  linkedVersion,
   parseChangelog,
   summarise,
   versionLink,

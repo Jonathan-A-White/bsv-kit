@@ -106,15 +106,35 @@ export interface VersionLinkOptions {
   repo: string;
   /** Is the repo public? A private repo cannot be linked to: null, and the app opens its own list. */
   public: boolean;
-  /** The version whose '## 0.5.9' heading to land on; without it, the top of the file. */
+  /** The running version, whose '## 0.5.9' heading to land on; without it, the top of the file. */
   version?: string;
+  /**
+   * The versions CHANGELOG.md has a heading for (the versions in the app's changelog.json). A version whose landing wrote
+   * no entry has no heading, so the link goes to the newest listed version at or below `version`. Without it, to `version`.
+   */
+  listed?: readonly string[];
+}
+
+/**
+ * The version whose heading the link lands on: `version` itself when no list is given or it is listed, else the newest
+ * listed version below it; undefined when none is at or below it (the link then has no anchor). Name this in the link's words.
+ */
+export function linkedVersion(version: string, listed?: readonly string[]): string | undefined {
+  if (listed === undefined) return version;
+  let best: string | undefined;
+  for (const candidate of listed) {
+    if (compareVersions(candidate, version) > 0) continue;
+    if (best === undefined || compareVersions(candidate, best) > 0) best = candidate;
+  }
+  return best;
 }
 
 /** The link from the version in About to its place in CHANGELOG.md on GitHub; null for a private repo. */
-export function versionLink({ repo, public: isPublic, version }: VersionLinkOptions): string | null {
+export function versionLink({ repo, public: isPublic, version, listed }: VersionLinkOptions): string | null {
   if (!isPublic) return null;
   const file = `https://github.com/${repo}/blob/main/CHANGELOG.md`;
-  return version === undefined ? file : `${file}#${githubAnchor(version)}`;
+  const target = version === undefined ? undefined : linkedVersion(version, listed);
+  return target === undefined ? file : `${file}#${githubAnchor(target)}`;
 }
 
 /** Reads changelog.json from the app's base URL. cache 'no-store': a waiting update's list is the new build's, not the cached one. */

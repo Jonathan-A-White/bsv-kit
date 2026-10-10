@@ -2,6 +2,13 @@
 
 Newest first. Breaking changes come first in a release, each with its migration in one sentence.
 
+## 0.1.2 (2026-10-10)
+
+- Fixed: the link from the version to `CHANGELOG.md` no longer lands at the top of the file when the running version wrote
+  no entry (mw-s061bg.13). `versionLink` takes the optional `listed` (the versions the changelog lists) and links to the
+  newest listed version at or below the running one; new `linkedVersion` names that version for the link's words. Without
+  `listed` it behaves as before.
+
 ## 0.1.1 (2026-10-10)
 
 - Fixed: Check for updates no longer says "Up to date" when nothing was checked (mw-s061bg.12). Offline
