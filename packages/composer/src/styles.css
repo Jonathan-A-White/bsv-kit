@@ -19,6 +19,7 @@
      --bk-composer-max-width: 36rem
      --bk-composer-button-size: 2.75rem
      --bk-composer-quiet-size: 2.25rem
+     --bk-composer-bar-send-size: 3.5rem
      --bk-composer-mic-size: 2.25rem
      --bk-composer-field-max-height: 200px
      --bk-composer-font-size: 1rem
@@ -123,10 +124,18 @@
   color: var(--bk-composer-faint, color-mix(in srgb, CanvasText 45%, transparent));
   font-size: var(--bk-composer-small-font-size, 0.8rem);
 }
-.bk-composer__bar {
+/* The bar and, once something is attached, the Send arrow beside it; the bar takes the row's width less the arrow. */
+.bk-composer__bar-row {
   display: flex;
   width: 100%;
   max-width: var(--bk-composer-max-width, 36rem);
+  align-items: center;
+  gap: 0.5rem;
+}
+.bk-composer__bar {
+  display: flex;
+  flex: 1;
+  min-width: 0;
   height: var(--bk-composer-bar-height, 6rem);
   min-height: 3rem;
   flex-direction: column;
@@ -231,6 +240,12 @@
   color: var(--bk-composer-faint, color-mix(in srgb, CanvasText 45%, transparent));
 }
 .bk-composer__send {
+  background: var(--bk-composer-accent, #2563eb);
+  color: var(--bk-composer-accent-fg, #ffffff);
+}
+.bk-composer__bar-send {
+  width: var(--bk-composer-bar-send-size, 3.5rem);
+  height: var(--bk-composer-bar-send-size, 3.5rem);
   background: var(--bk-composer-accent, #2563eb);
   color: var(--bk-composer-accent-fg, #ffffff);
 }

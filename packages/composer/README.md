@@ -44,6 +44,13 @@ createRoot(document.getElementById('root')!).render(<App />);
 | `lang`, `appName` | The language to listen for (default the page's `<html lang>`), and the app's name in "the microphone is not allowed for ..." |
 | `initialText`, `autoFocus`, `disabled`, `top`, `className` | Words already in the box; focus on open; nothing can be held or sent; a node at the top (a quote); a class on the root. |
 
+Send with nothing said: attach a picture (or any file) and leave the box empty, and a Send arrow stands beside Hold to talk.
+One tap sends the attachments with no words (`onSend` gets `{ text: '', files }`), so a picture needs no comment. Hold to talk
+stays the big button, with the same height and place (it gives up only the arrow's width); with nothing attached nothing
+changes, and once words are typed the text box's own Send is the one. The arrow waits while the bar is held. The example page,
+`examples/composer-demo` (`npm run dev --workspace composer-demo`), shows it; its shot at 390 x 844 is
+`examples/composer-demo/shots/attachment-390x844.png`.
+
 What a hold does, from Postern, with its fixes:
 
 - A hold that ends without sending (a slide off, the phone taking the touch, the app hidden, the recogniser
@@ -71,13 +78,14 @@ setting the properties on `:root`, a parent or `.bk-composer`:
   --bk-composer-danger: #b91c1c;      /* the bar slid off, and errors */
   --bk-composer-surface: #fffdf7;
   --bk-composer-bar-height: 5rem;
+  --bk-composer-bar-send-size: 3.5rem; /* the Send arrow beside the bar */
 }
 ```
 
 The full list is at the top of `styles.css`. Or leave the file out and style the classes: `bk-composer`
 (`data-mode` 'speak' or 'type', `data-layout` 'bar' or 'field'), `__bar` (`data-state` 'idle', 'listening' or
 'slid'), `__status`, `__live`, `__mic-name`, `__hint`, `__quiet-row`, `__quiet` (attach and camera),
-`__type-instead`, `__field-row`, `__field`, `__mic`, `__send`, `__files`, `__file`, `__thumb`, `__remove`,
+`__type-instead`, `__bar-row`, `__bar-send` (the arrow beside the bar), `__field-row`, `__field`, `__mic`, `__send`, `__files`, `__file`, `__thumb`, `__remove`,
 `__kept`, `__notice`, `__error`.
 
 ## The parts

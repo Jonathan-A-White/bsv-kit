@@ -1,6 +1,8 @@
 // Composer.tsx (lifted from Postern's src/cockpit/Composer.tsx) — how he says something to the app: words he speaks
 // or types, and, when the app allows them, files from the picker, a photo from the camera, a paste or a drop. All the
 // files go as one message, the words its caption, through the app's onSend.
+// With something attached and nothing typed, a Send arrow stands beside the bar and one tap sends the files with
+// no words (mw-jtzpw0.9); the bar stays the big button and does not move.
 // The hold-to-talk bar: hold it and the words stream on screen, let go and the words, the voice note (when the
 // app asks for one) and whatever is attached go as one message; slide off the bar first and nothing goes.
 // Whatever ends a hold without sending it (a slide off, the phone taking the touch, the app hidden, the recogniser
@@ -438,16 +440,23 @@ export function Composer({
               <p className={hold.notice ? 'bk-composer__hint bk-composer__error' : 'bk-composer__hint'}>{hold.notice ?? labels.hint}</p>
             )}
           </div>
-          <HoldToTalkBar
-            label={holding ? (hold.mic === 'ready' ? labels.release : labels.starting) : labels.hold}
-            dropLabel={labels.drop}
-            listening={holding}
-            disabled={busy || disabled}
-            onPress={press}
-            onRelease={() => void release()}
-            onAbort={drop}
-            dropOnSlideOff
-          />
+          <div className="bk-composer__bar-row">
+            <HoldToTalkBar
+              label={holding ? (hold.mic === 'ready' ? labels.release : labels.starting) : labels.hold}
+              dropLabel={labels.drop}
+              listening={holding}
+              disabled={busy || disabled}
+              onPress={press}
+              onRelease={() => void release()}
+              onAbort={drop}
+              dropOnSlideOff
+            />
+            {files.length > 0 && (
+              <button type="button" aria-label={labels.send} className="bk-composer__button bk-composer__bar-send" disabled={busy || disabled || holding} onClick={() => void send()}>
+                <Icon name="send" />
+              </button>
+            )}
+          </div>
           <div className="bk-composer__quiet-row">
             {quiet}
             <button type="button" className="bk-composer__type-instead" disabled={holding} onClick={typeInstead}>

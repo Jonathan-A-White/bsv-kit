@@ -409,6 +409,89 @@ describe('attach and camera', () => {
     expect(sent[0].files).toEqual([{ name: 'photo.png', type: 'image/png', bytes: new Uint8Array([137, 80, 78, 71]) }]);
   });
 
+  describe('a picture attached and nothing typed: a Send arrow beside the bar (mw-jtzpw0.9)', () => {
+    async function attachPicture(props: Partial<ComposerProps> = {}) {
+      open({ attach: true, camera: true, ...props });
+      const picker = document.querySelector('input[type="file"][multiple]') as HTMLInputElement;
+      await act(async () => {
+        fireEvent.change(picker, { target: { files: [new File([new Uint8Array([137, 80, 78, 71])], 'photo.png', { type: 'image/png' })] } });
+      });
+      await pass();
+    }
+
+    it('shows a Send button beside Hold to talk, and one tap sends the picture with empty text', async () => {
+      await attachPicture();
+      const send = screen.getByRole('button', { name: 'Send' });
+      expect(send.className).toContain('bk-composer__bar-send');
+      expect((send as HTMLButtonElement).disabled).toBe(false);
+      fireEvent.click(send);
+      await pass();
+      expect(sent).toEqual([{ text: '', files: [{ name: 'photo.png', type: 'image/png', bytes: new Uint8Array([137, 80, 78, 71]) }] }]);
+      // it went: the box is empty, the arrow is gone and the bar stands alone again
+      expect(screen.queryByRole('img', { name: 'photo.png' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Send' })).toBeNull();
+      expect(screen.getByRole('button', { name: 'Hold to talk' })).toBeTruthy();
+    });
+
+    it('shows no Send button with nothing attached, and none once the picture is removed', async () => {
+      open({ attach: true });
+      expect(screen.queryByRole('button', { name: 'Send' })).toBeNull();
+      cleanup();
+      await attachPicture();
+      expect(screen.getByRole('button', { name: 'Send' })).toBeTruthy();
+      fireEvent.click(screen.getByRole('button', { name: 'Remove photo.png' }));
+      expect(screen.queryByRole('button', { name: 'Send' })).toBeNull();
+    });
+
+    it('keeps Hold to talk the same button in the same place: the same element, first in its row, the arrow after it', async () => {
+      open({ attach: true });
+      const before = screen.getByRole('button', { name: 'Hold to talk' });
+      const row = before.parentElement as HTMLElement;
+      expect(row.className).toContain('bk-composer__bar-row');
+      const picker = document.querySelector('input[type="file"][multiple]') as HTMLInputElement;
+      await act(async () => {
+        fireEvent.change(picker, { target: { files: [new File([new Uint8Array([1])], 'photo.png', { type: 'image/png' })] } });
+      });
+      await pass();
+      const after = screen.getByRole('button', { name: 'Hold to talk' });
+      expect(after).toBe(before);
+      expect(after.parentElement).toBe(row);
+      expect(after.className).toBe('bk-composer__bar');
+      expect(row.firstElementChild).toBe(after);
+      expect(after.compareDocumentPosition(screen.getByRole('button', { name: 'Send' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it('holds the arrow back while the bar is held', async () => {
+      await attachPicture();
+      await press();
+      expect((screen.getByRole('button', { name: 'Send' }) as HTMLButtonElement).disabled).toBe(true);
+      fireEvent.pointerUp(bar(), ON);
+      await pass();
+      await pass();
+    });
+
+    it('keeps the existing Send in the text box when words are typed', async () => {
+      await attachPicture();
+      fireEvent.click(screen.getByRole('button', { name: 'Type a message' }));
+      expect(screen.getAllByRole('button', { name: 'Send' })).toHaveLength(1);
+      expect(screen.getByRole('button', { name: 'Send' }).className).toContain('bk-composer__send');
+      fireEvent.change(textBox(), { target: { value: 'look' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+      await pass();
+      expect(sent[0].text).toBe('look');
+      expect(sent[0].files).toHaveLength(1);
+    });
+
+    it('keeps the picture and the arrow when the app says it did not go', async () => {
+      onSend.mockImplementationOnce(async () => false);
+      await attachPicture();
+      fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+      await pass();
+      expect(screen.getByRole('img', { name: 'photo.png' })).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Hold to talk' })).toBeTruthy();
+    });
+  });
+
   it('takes a picked file away with its remove x', async () => {
     open({ attach: true, camera: true });
     const camera = document.querySelector('input[type="file"][capture]') as HTMLInputElement;
