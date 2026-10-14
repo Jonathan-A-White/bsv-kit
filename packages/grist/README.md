@@ -23,7 +23,7 @@ const answer = await grist.awaitAnswer(txid, { door: d, key, signal }); // polls
 - `sendGrist` asks `GET /api/me` for the mill key (or takes `mill`), seals and uploads each photo to
   it (`POST /api/blobs`), seals `{grist, input, attachments}` (BRC-78) in a `grist` envelope and
   posts it (`POST /api/messages`). A grist it could not send (5 photos, a type the mill does not
-  take, a record over the 10 KiB payload cap) is refused with `GristInputError` before any upload.
+  take, a record over the 20480-byte payload cap) is refused with `GristInputError` before any upload.
 - `awaitAnswer` pages `GET /api/messages?since=` until a grist record from the mill, sealed by the
   mill, whose `re` is `txid` arrives. `refused` and `failed` resolve too. Aborting `signal` rejects
   with `AwaitAbortedError` (name `AbortError`).

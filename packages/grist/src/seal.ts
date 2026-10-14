@@ -7,8 +7,8 @@ import type { Envelope } from './types.js';
 /** `nftgate`, the record's protocol id, and its version byte (docs/protocol.md section 1). */
 const PROTOCOL_ID = Utils.toArray('nftgate', 'utf8');
 const RECORD_VERSION_PLAINTEXT = 0x01;
-/** The cap spell-forge-bsv's encodeRecordScript puts on a record's payload. */
-export const MAX_PAYLOAD_BYTES = 10 * 1024;
+/** The cap on a record's payload: twice the 10240 spell-forge-bsv's encodeRecordScript uses (no server, mill or chain limit; Postern's direct POST allows 256 KiB). */
+export const MAX_PAYLOAD_BYTES = 20 * 1024;
 
 const privateKeyOf = (key: Uint8Array): PrivateKey => PrivateKey.fromHex(Utils.toHex(Array.from(key)));
 
