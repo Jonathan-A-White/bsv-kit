@@ -7,7 +7,9 @@
 // app asks for one) and whatever is attached go as one message; slide off the bar first and nothing goes.
 // Whatever ends a hold without sending it (a slide off, the phone taking the touch, the app hidden, the recogniser
 // failing, a release it settles with no words) leaves the words heard so far in the box, unsent, saying
-// 'Kept what you said: tap Send.' (mw-f7gmps.3).
+// 'Kept what you said: tap Send.' (mw-f7gmps.3). A hold that ends with a notice and no words (the recogniser failed by
+// every route, nothing was heard) shows the notice above the bar, and the bar says 'Try again': a hold on it is a fresh
+// one, every route untried (mw-hgtlf5.1).
 // mode 'speak' is Postern's layout: the big bar first, attach, camera and 'Type a message' quiet below it, and the
 // text box once he chooses to type or a hold leaves words in it. mode 'type' puts the text box and Send first with a
 // small mic that brings the bar out. The app passes what is its own: how audio becomes text (a Transcriber), what
@@ -41,6 +43,8 @@ export type ComposerMode = 'speak' | 'type';
 export interface ComposerLabels {
   /** The bar, before a hold. */
   hold: string;
+  /** The bar, after a hold that ended with a notice (the recogniser failed, nothing was heard): a hold on it is a fresh one. */
+  tryAgain: string;
   /** The bar, while he holds and the mic is open. */
   release: string;
   /** The bar and the live words, while the mic opens. */
@@ -78,6 +82,7 @@ export interface ComposerLabels {
 
 export const DEFAULT_LABELS: ComposerLabels = {
   hold: 'Hold to talk',
+  tryAgain: 'Try again',
   release: 'Release to send',
   starting: 'Starting the mic…',
   drop: 'Let go to keep it unsent',
@@ -442,7 +447,7 @@ export function Composer({
           </div>
           <div className="bk-composer__bar-row">
             <HoldToTalkBar
-              label={holding ? (hold.mic === 'ready' ? labels.release : labels.starting) : labels.hold}
+              label={holding ? (hold.mic === 'ready' ? labels.release : labels.starting) : hold.notice ? labels.tryAgain : labels.hold}
               dropLabel={labels.drop}
               listening={holding}
               disabled={busy || disabled}

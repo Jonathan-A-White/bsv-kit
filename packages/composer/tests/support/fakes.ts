@@ -9,6 +9,11 @@ export class FakeRecognizer {
   static instances: FakeRecognizer[] = [];
   /** On letting go the recogniser's last result is blank, after words were shown (mw-f7gmps.3). */
   static blankFinal = false;
+  /**
+   * 'unavailable': Chrome on Android (mw-hgtlf5.1), where processLocally is offered but never honoured: an on-device start answers
+   * language-not-supported a moment later (the browser's check), opens no microphone, never ends, and a stop() before the answer does nothing.
+   */
+  static onDevice: 'works' | 'unavailable' = 'works';
   lang = '';
   continuous = false;
   interimResults = false;
@@ -22,12 +27,17 @@ export class FakeRecognizer {
   aborted = false;
   startedWith: { label: string } | undefined = undefined;
   start(track?: { label: string }) {
-    this.started = true;
     this.startedWith = track;
     FakeRecognizer.instances.push(this);
+    if (this.processLocally && FakeRecognizer.onDevice === 'unavailable') {
+      queueMicrotask(() => this.onerror?.({ error: 'language-not-supported' }));
+      return;
+    }
+    this.started = true;
     queueMicrotask(() => this.onaudiostart?.());
   }
   stop() {
+    if (!this.started) return;
     queueMicrotask(() => {
       if (FakeRecognizer.blankFinal) this.onresult?.({ results: [[{ transcript: '' }]] });
       this.onend?.();
@@ -44,6 +54,7 @@ export class FakeRecognizer {
 export function installRecognizer(): void {
   FakeRecognizer.instances = [];
   FakeRecognizer.blankFinal = false;
+  FakeRecognizer.onDevice = 'works';
   vi.stubGlobal('SpeechRecognition', FakeRecognizer);
   Object.defineProperty(navigator, 'vibrate', { value: vi.fn(() => true), configurable: true, writable: true });
 }

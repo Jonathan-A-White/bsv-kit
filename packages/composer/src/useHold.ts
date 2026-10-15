@@ -125,7 +125,13 @@ export function useHold({ transcriber = browserSpeech, lang, appName, record = f
         said.current = text;
         setTranscript(text);
       },
-      onStart: () => hold.current === thisHold && setMic('ready'),
+      onStart: () => {
+        if (hold.current !== thisHold) return;
+        setMic('ready');
+        // the route the mic opened on is the mode on the screen (a hold can go from on-device to the cloud and on, mw-hgtlf5.1)
+        const session = listening.current;
+        if (session) setMode(session.mode);
+      },
       openInput: choosing
         ? async () => {
             const opened = await openBluetoothInput();

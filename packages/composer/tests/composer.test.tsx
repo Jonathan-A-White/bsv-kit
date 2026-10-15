@@ -5,7 +5,7 @@
 // Postern's scenarios (features/composer-hold-to-talk.feature, AC-1 to AC-17) are the specification.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { Composer, INPUT_SILENT_MS, forgetSilentInputs, type ComposerMessage, type ComposerProps } from '../src/index.js';
+import { Composer, INPUT_SILENT_MS, STOP_TIMEOUT_MS, forgetSilentInputs, type ComposerMessage, type ComposerProps } from '../src/index.js';
 import { FakeMediaRecorder, FakeMediaStream, FakeRecognizer, clearInputs, fakeTranscriber, installRecognizer, opened, setInputs } from './support/fakes.js';
 
 /** Lets the hold's promises and the recogniser's microtasks run, and the fake clock move on by `ms`. */
@@ -21,7 +21,7 @@ function open(props: Partial<ComposerProps> = {}) {
   return render(<Composer onSend={onSend} {...props} />);
 }
 
-const BAR = /^(Hold to talk|Release to send|Let go to keep it unsent|Starting the mic…)$/;
+const BAR = /^(Hold to talk|Try again|Release to send|Let go to keep it unsent|Starting the mic…)$/;
 const bar = () => screen.getByRole('button', { name: BAR });
 const textBox = () => screen.getByRole('textbox', { name: 'Message' }) as HTMLTextAreaElement;
 const live = () => screen.getByTestId('live-transcript').textContent;
@@ -513,5 +513,59 @@ describe('attach and camera', () => {
     await pass();
     expect(screen.queryByRole('button', { name: 'Remove big.bin' })).toBeNull();
     expect(screen.getByText('big.bin is too big.')).toBeTruthy();
+  });
+});
+
+describe('a language-not-supported on Android Chrome (mw-hgtlf5.1)', () => {
+  const ERROR = /language-not-supported/;
+
+  it('his screen: a touch on the bar let go before the on-device check answers shows no red language-not-supported line', async () => {
+    FakeRecognizer.onDevice = 'unavailable';
+    open();
+    fireEvent.pointerDown(bar());
+    giveTheBarAShape();
+    fireEvent.pointerUp(bar(), ON);
+    await pass();
+    await pass();
+    await pass(STOP_TIMEOUT_MS);
+    expect(screen.queryByText(ERROR)).toBeNull();
+    expect(sent).toEqual([]);
+    expect(FakeRecognizer.instances).toHaveLength(1);
+  });
+
+  it('a hold on Android goes on in the cloud, and so does the next one: his words are heard and sent both times', async () => {
+    FakeRecognizer.onDevice = 'unavailable';
+    open();
+    for (const words of ['the first time', 'the second time']) {
+      await press();
+      expect(screen.queryByText(ERROR)).toBeNull();
+      expect(FakeRecognizer.instances.at(-1)?.processLocally).toBe(false);
+      await hear(words);
+      await letGo();
+    }
+    expect(sent).toEqual([
+      { text: 'the first time', files: [] },
+      { text: 'the second time', files: [] },
+    ]);
+    expect(FakeRecognizer.instances).toHaveLength(4);
+  });
+
+  it('every route failing says what was tried under the bar, and the bar says Try again: a hold on it is a fresh one', async () => {
+    open();
+    await press();
+    for (let route = 0; route < 3; route++) await act(async () => FakeRecognizer.instances[route]?.onerror?.({ error: 'language-not-supported' }));
+    expect(screen.getByText(/\(tried: on-device en-US, cloud en-US, cloud default\)$/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
+    expect(sent).toEqual([]);
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Try again' }));
+    await pass();
+    giveTheBarAShape();
+    expect(screen.queryByText(ERROR)).toBeNull();
+    expect(FakeRecognizer.instances).toHaveLength(4);
+    expect(FakeRecognizer.instances[3].processLocally).toBe(true);
+    await hear('second time lucky');
+    await letGo();
+    expect(sent).toEqual([{ text: 'second time lucky', files: [] }]);
+    expect(screen.getByRole('button', { name: 'Hold to talk' })).toBeTruthy();
   });
 });
