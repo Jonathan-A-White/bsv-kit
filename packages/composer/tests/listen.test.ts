@@ -217,6 +217,8 @@ describe('listen', () => {
       const begin = startListening();
       if (!begin.ok) throw new Error('expected listening to start');
       FakeRecognizer.instances.at(-1)?.onerror?.({ error: raised });
+      // a language-not-supported goes on by the cloud default route first (mw-hgtlf5.1): that one fails too
+      if (raised === 'language-not-supported') FakeRecognizer.instances.at(-1)?.onerror?.({ error: raised });
       const outcome = await begin.session.stop();
       expect(outcome.ok).toBe(false);
       if (!outcome.ok) expect(outcome.error.kind).toBe(kind);
@@ -396,14 +398,16 @@ describe('listen', () => {
       expect(await begin.session.stop()).toEqual({ ok: true, text: 'it works', mode: 'cloud' });
     });
 
-    it('retries only once: a second failure is reported', async () => {
+    it('tries each route once: a failure on the last route (the cloud default, mw-hgtlf5.1) is reported', async () => {
       install();
       const onError = vi.fn();
       const begin = startListening({ onError });
       if (!begin.ok) throw new Error('expected listening to start');
       FakeRecognizer.instances[0].onerror?.({ error: 'language-not-supported' });
       FakeRecognizer.instances[1].onerror?.({ error: 'language-not-supported' });
-      expect(FakeRecognizer.instances).toHaveLength(2);
+      expect(onError).not.toHaveBeenCalled();
+      FakeRecognizer.instances[2].onerror?.({ error: 'language-not-supported' });
+      expect(FakeRecognizer.instances).toHaveLength(3);
       expect(onError).toHaveBeenCalledWith(expect.objectContaining({ kind: 'language-not-supported' }));
     });
 
@@ -629,7 +633,7 @@ describe('the recogniser language (mw-j0f2d.24)', () => {
     expect(FakeRecognizer.instances.map((r) => r.lang)).toEqual(['en-US', 'en-US']);
   });
 
-  it('retries once with en-US on language-not-supported before the message is shown', async () => {
+  it('retries once with en-US on language-not-supported, then once with the cloud default (mw-hgtlf5.1), before the message is shown', async () => {
     install(CloudOnlyRecognizer);
     const onError = vi.fn();
     const onFallback = vi.fn();
@@ -642,7 +646,11 @@ describe('the recogniser language (mw-j0f2d.24)', () => {
     expect(onError).not.toHaveBeenCalled();
     expect(onFallback).not.toHaveBeenCalled();
     FakeRecognizer.instances[1].onerror?.({ error: 'language-not-supported' });
-    expect(FakeRecognizer.instances).toHaveLength(2);
+    expect(FakeRecognizer.instances).toHaveLength(3);
+    expect(FakeRecognizer.instances[2].lang).toBe('');
+    expect(onError).not.toHaveBeenCalled();
+    FakeRecognizer.instances[2].onerror?.({ error: 'language-not-supported' });
+    expect(FakeRecognizer.instances).toHaveLength(3);
     expect(onError).toHaveBeenCalledWith(expect.objectContaining({ kind: 'language-not-supported' }));
   });
 
@@ -655,27 +663,19 @@ describe('the recogniser language (mw-j0f2d.24)', () => {
     expect(await begin.session.stop()).toEqual({ ok: true, text: 'hello there', mode: 'cloud' });
   });
 
-  it('does not retry with en-US when the recogniser already asked for it', () => {
+  it('does not ask for en-US again when the recogniser already asked for it: the cloud default is the next route', () => {
     install(CloudOnlyRecognizer);
     const onError = vi.fn();
     startListening({ onError });
     FakeRecognizer.instances[0].onerror?.({ error: 'language-not-supported' });
-    expect(FakeRecognizer.instances).toHaveLength(1);
+    expect(FakeRecognizer.instances.map((r) => r.lang)).toEqual(['en-US', '']);
+    expect(onError).not.toHaveBeenCalled();
+    FakeRecognizer.instances[1].onerror?.({ error: 'language-not-supported' });
+    expect(FakeRecognizer.instances).toHaveLength(2);
     expect(onError).toHaveBeenCalledTimes(1);
   });
 
-  it('tries en-US after the on-device attempt also fails, keeping the order: cloud first, then en-US', () => {
-    install();
-    const onError = vi.fn();
-    startListening({ lang: 'fr-FR', onError });
-    const seen = () => FakeRecognizer.instances.map((r) => [r.lang, r.processLocally]);
-    FakeRecognizer.instances[0].onerror?.({ error: 'language-not-supported' });
-    FakeRecognizer.instances[1].onerror?.({ error: 'language-not-supported' });
-    expect(seen()).toEqual([['fr-FR', true], ['fr-FR', false], ['en-US', false]]);
-    expect(onError).not.toHaveBeenCalled();
-    FakeRecognizer.instances[2].onerror?.({ error: 'language-not-supported' });
-    expect(onError).toHaveBeenCalledTimes(1);
-  });
+  // the order of every route after the on-device attempt fails too: the mw-hgtlf5.1 tests below
   describe('on a chosen input (his car\'s Bluetooth microphone)', () => {
     const car = () => {
       const close = vi.fn();
@@ -1056,5 +1056,185 @@ describe('a restart never repeats words already heard (mw-j0f2d.37)', () => {
     const { session, recognizer } = listening();
     recognizer.say([result('I think so', true), result("I think that's right", true)]);
     expect(await session.stop()).toEqual({ ok: true, text: "I think so I think that's right", mode: 'on-device' });
+  });
+});
+
+/**
+ * Chrome on Android (mw-hgtlf5.1): processLocally is offered (the IDL is shared with desktop) but on-device recognition is never
+ * available there, so an on-device start asks the browser (an IPC round trip), is answered language-not-supported a moment later,
+ * opens no microphone, fires no end event, and a stop() before the answer does nothing (Blink's stop is a no-op before start).
+ */
+class AndroidRecognizer extends FakeRecognizer {
+  static checks: (() => void)[] = [];
+  start(track?: unknown) {
+    this.startFn(track);
+    if (this.processLocally) AndroidRecognizer.checks.push(() => this.onerror?.({ error: 'language-not-supported' }));
+  }
+  stop() {
+    if (this.processLocally) return;
+    super.stop();
+  }
+  /** The browser answers every on-device check that is waiting. */
+  static answer() {
+    for (const check of AndroidRecognizer.checks.splice(0)) check();
+  }
+}
+
+describe('a language-not-supported on Android Chrome (mw-hgtlf5.1)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('his screen: a hold let go before the on-device check answers shows no language-not-supported: the hold settles with nothing heard', async () => {
+    vi.useFakeTimers();
+    install(AndroidRecognizer);
+    const onError = vi.fn();
+    const begin = startListening({ onError });
+    if (!begin.ok) throw new Error('expected listening to start');
+    const stopped = begin.session.stop();
+    AndroidRecognizer.answer();
+    await vi.advanceTimersByTimeAsync(STOP_TIMEOUT_MS);
+    expect(onError).not.toHaveBeenCalled();
+    expect(await stopped).toEqual(expect.objectContaining({ ok: true, text: '' }));
+    expect(FakeRecognizer.instances).toHaveLength(1);
+  });
+
+  it('AC-1: a first hold and a second hold on the same page both go on in the cloud: the second hold starts with fresh retries', async () => {
+    install(AndroidRecognizer);
+    for (const hold of ['first hold', 'second hold']) {
+      const onError = vi.fn();
+      const begin = startListening({ onError });
+      if (!begin.ok) throw new Error('expected listening to start');
+      AndroidRecognizer.answer();
+      const cloud = FakeRecognizer.instances.at(-1);
+      if (!cloud) throw new Error('expected a cloud recogniser');
+      expect([cloud.lang, cloud.processLocally]).toEqual(['en-US', false]);
+      cloud.say([result(hold, false)]);
+      expect(await begin.session.stop()).toEqual({ ok: true, text: hold, mode: 'cloud' });
+      expect(onError).not.toHaveBeenCalled();
+    }
+    expect(FakeRecognizer.instances).toHaveLength(4);
+  });
+
+  it('AC-2: on-device en-US fails, cloud en-US fails, the cloud with no language set hears: the words arrive, no error', async () => {
+    install();
+    const onError = vi.fn();
+    const begin = startListening({ onError });
+    if (!begin.ok) throw new Error('expected listening to start');
+    FakeRecognizer.instances[0].onerror?.({ error: 'language-not-supported' });
+    FakeRecognizer.instances[1].onerror?.({ error: 'language-not-supported' });
+    expect(FakeRecognizer.instances.map((r) => [r.lang, r.processLocally])).toEqual([
+      ['en-US', true],
+      ['en-US', false],
+      ['', false],
+    ]);
+    FakeRecognizer.instances[2].say([result('hello there', false)]);
+    expect(await begin.session.stop()).toEqual({ ok: true, text: 'hello there', mode: 'cloud' });
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('AC-3: every route fails: the message ends with the routes tried, once each', () => {
+    install();
+    const onError = vi.fn();
+    startListening({ onError });
+    for (let route = 0; route < 3; route++) FakeRecognizer.instances[route].onerror?.({ error: 'language-not-supported' });
+    expect(FakeRecognizer.instances).toHaveLength(3);
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError.mock.calls[0][0]).toEqual({
+      kind: 'language-not-supported',
+      code: 'language-not-supported',
+      message: "The phone's speech service failed: language-not-supported (this language is not available for speech recognition). (tried: on-device en-US, cloud en-US, cloud default)",
+    });
+  });
+
+  it('AC-3: a page in another language tries on-device and cloud in that language, then on-device en-US, cloud en-US and the cloud default', () => {
+    install();
+    const onError = vi.fn();
+    startListening({ lang: 'fr-FR', onError });
+    for (let i = 0; i < 5; i++) FakeRecognizer.instances[i].onerror?.({ error: 'language-not-supported' });
+    expect(FakeRecognizer.instances.map((r) => [r.lang, r.processLocally])).toEqual([
+      ['fr-FR', true],
+      ['fr-FR', false],
+      ['en-US', true],
+      ['en-US', false],
+      ['', false],
+    ]);
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError.mock.calls[0][0].message).toMatch(/ \(tried: on-device fr-FR, cloud fr-FR, on-device en-US, cloud en-US, cloud default\)$/);
+  });
+
+  it('AC-3: without on-device recognition, the routes tried are the cloud ones', () => {
+    install(CloudOnlyRecognizer);
+    const onError = vi.fn();
+    startListening({ onError });
+    FakeRecognizer.instances[0].onerror?.({ error: 'language-not-supported' });
+    FakeRecognizer.instances[1].onerror?.({ error: 'language-not-supported' });
+    expect(FakeRecognizer.instances).toHaveLength(2);
+    expect(onError.mock.calls[0][0].message).toMatch(/ \(tried: cloud en-US, cloud default\)$/);
+  });
+
+  it('AC-4: when SpeechRecognition.install exists and on-device says language-not-supported, the en-US pack is asked for once, before the cloud', () => {
+    const order: string[] = [];
+    const installFn = vi.fn((options: { langs: string[] }) => {
+      order.push(`install ${options.langs.join(',')}`);
+      return Promise.resolve(false);
+    });
+    install(
+      class extends FakeRecognizer {
+        static install = installFn;
+        start(track?: unknown) {
+          order.push(`start ${this.processLocally ? 'on-device' : 'cloud'} ${this.lang || 'default'}`);
+          super.start(track);
+        }
+      },
+    );
+    const onError = vi.fn();
+    startListening({ onError });
+    FakeRecognizer.instances[0].onerror?.({ error: 'language-not-supported' });
+    expect(installFn).toHaveBeenCalledTimes(1);
+    expect(installFn).toHaveBeenCalledWith(expect.objectContaining({ langs: ['en-US'] }));
+    expect(order).toEqual(['start on-device en-US', 'install en-US', 'start cloud en-US']);
+    FakeRecognizer.instances[1].onerror?.({ error: 'language-not-supported' });
+    FakeRecognizer.instances[2].onerror?.({ error: 'language-not-supported' });
+    expect(installFn).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledTimes(1);
+  });
+
+  it('AC-4: an install that throws or rejects does not stop the cloud route', async () => {
+    install(
+      class extends FakeRecognizer {
+        static install = () => {
+          throw new Error('no packs here');
+        };
+      },
+    );
+    const onError = vi.fn();
+    const begin = startListening({ onError });
+    if (!begin.ok) throw new Error('expected listening to start');
+    FakeRecognizer.instances[0].onerror?.({ error: 'language-not-supported' });
+    expect(FakeRecognizer.instances).toHaveLength(2);
+    FakeRecognizer.instances[1].say([result('still heard', false)]);
+    expect(await begin.session.stop()).toEqual({ ok: true, text: 'still heard', mode: 'cloud' });
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('a route whose recogniser cannot start counts as tried, and the next route goes on', () => {
+    let made = 0;
+    install(
+      class extends FakeRecognizer {
+        start() {
+          if (made++ === 1) throw new Error('already started');
+          super.start();
+        }
+      },
+    );
+    const onError = vi.fn();
+    startListening({ onError });
+    FakeRecognizer.instances[0].onerror?.({ error: 'language-not-supported' });
+    expect(FakeRecognizer.instances).toHaveLength(3);
+    expect(onError).not.toHaveBeenCalled();
+    FakeRecognizer.instances[2].onerror?.({ error: 'language-not-supported' });
+    expect(onError.mock.calls[0][0].message).toMatch(/ \(tried: on-device en-US, cloud en-US, cloud default\)$/);
   });
 });

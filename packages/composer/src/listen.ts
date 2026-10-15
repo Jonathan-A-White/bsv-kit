@@ -14,8 +14,13 @@
 // (mw-j0f2d.27), and never once he has said words: then it is given a moment and started again
 // until he lets go, and a phrase the restarted recogniser hears again is said once (mw-j0f2d.37).
 // The recogniser always gets a full language tag (en-US when none is given, a bare 'en'
-// widened to it), and a language-not-supported error is retried once with en-US
-// before it is shown, because the phone's service rejects tags it has no pack for.
+// widened to it). A language-not-supported walks the hold's routes, each once (listenRoutes): on-device
+// and cloud in the page's language, then on-device en-US (asking Chrome's SpeechRecognition.install for
+// the pack, for later holds; this hold does not wait for it) and cloud en-US, then the cloud with no
+// language set; only when the last route fails is it shown, naming the routes tried (mw-hgtlf5.1).
+// On Android Chrome processLocally is offered but never honoured: an on-device start is answered
+// language-not-supported a moment later, opens no microphone and fires no end, so a hold let go before
+// that answer settles with nothing heard instead of showing a failure the next route would have recovered from.
 // The recogniser listens on the phone's default microphone unless it is handed an audio
 // track (start(track), Chrome): when the caller can open a Bluetooth input (a car's
 // hands-free microphone, see micInput.ts) the hold waits for it, starts the recogniser
@@ -128,7 +133,10 @@ interface Recognizer {
   stop(): void;
   abort(): void;
 }
-type RecognizerConstructor = new () => Recognizer;
+type RecognizerConstructor = (new () => Recognizer) & {
+  /** Chrome 139+: asks the browser to install the on-device packs for `langs`; resolves true once they are installed. */
+  install?: (options: { langs: string[]; processLocally?: boolean }) => Promise<boolean>;
+};
 
 function recognizerConstructor(): RecognizerConstructor | undefined {
   if (typeof window === 'undefined') return undefined;
@@ -192,6 +200,29 @@ export const INPUT_SILENT_MS = 2500;
 
 /** What an on-device attempt can fail with when the phone lacks the speech pack or service for it. */
 const ON_DEVICE_FAILURES = new Set(['language-not-supported', 'service-not-allowed']);
+
+/** One way to hear him: where the recogniser runs and the language it is asked for (none: the browser's own default). */
+export interface ListenRoute {
+  onDevice: boolean;
+  lang: string | undefined;
+}
+
+/** A route as the message names it: 'on-device en-US', 'cloud default'. */
+export const routeName = (route: ListenRoute): string => `${route.onDevice ? 'on-device' : 'cloud'} ${route.lang ?? 'default'}`;
+
+/**
+ * The routes a hold for `lang` tries on language-not-supported, in order, each once: on-device (when the browser offers
+ * it) and cloud in the page's language, the same in en-US, then the cloud with no language set.
+ */
+export function listenRoutes(lang: string, onDevice: boolean): ListenRoute[] {
+  const routes: ListenRoute[] = [];
+  for (const tag of lang === DEFAULT_LANG ? [lang] : [lang, DEFAULT_LANG]) {
+    if (onDevice) routes.push({ onDevice: true, lang: tag });
+    routes.push({ onDevice: false, lang: tag });
+  }
+  routes.push({ onDevice: false, lang: undefined });
+  return routes;
+}
 
 /** True when `next` is `previous` grown by more words: the same phrase said further, not a new one. */
 function extendsPhrase(previous: string, next: string): boolean {
@@ -265,11 +296,12 @@ function askOnDevice(recognizer: Recognizer): boolean {
   }
 }
 
-function configure(Ctor: RecognizerConstructor, lang: string, onDevice: boolean): { recognizer: Recognizer; mode: ListenMode } {
+function configure(Ctor: RecognizerConstructor, lang: string | undefined, onDevice: boolean): { recognizer: Recognizer; mode: ListenMode } {
   const recognizer = new Ctor();
   recognizer.continuous = true;
   recognizer.interimResults = true;
-  recognizer.lang = lang;
+  // no language: the browser's own default stays
+  if (lang !== undefined) recognizer.lang = lang;
   if (onDevice) return { recognizer, mode: askOnDevice(recognizer) ? 'on-device' : 'cloud' };
   if ('processLocally' in recognizer) {
     try {
@@ -288,7 +320,7 @@ export function startListening(options: ListenOptions = {}): ListenStart {
     return { ok: false, error: { kind: 'not-supported', message: 'This browser cannot turn speech into text.' } };
   }
 
-  let lang = recognizerLang(options.lang);
+  let lang: string | undefined = recognizerLang(options.lang);
   const app = options.appName ?? DEFAULT_APP_NAME;
   let current: Recognizer;
   let mode: ListenMode;
@@ -297,6 +329,10 @@ export function startListening(options: ListenOptions = {}): ListenStart {
   } catch (err) {
     return { ok: false, error: { kind: 'other', message: err instanceof Error ? err.message : 'Listening could not start.' } };
   }
+  // The routes this hold can hear him by, each tried once; the first is the recogniser just made.
+  const routes = listenRoutes(lang, mode === 'on-device');
+  let routeIndex = 0;
+  let packAsked = false;
 
   let text = '';
   // The phrases heard so far, and those from the stretches of listening before the recogniser last restarted.
@@ -310,8 +346,6 @@ export function startListening(options: ListenOptions = {}): ListenStart {
   let error = null as ListenError | null;
   let outcome = null as ListenResult | null;
   let announced = false;
-  let retried = false;
-  let langRetried = false;
   let inputRetried = false;
   let stopping = false;
   let input: MicInput | undefined;
@@ -393,7 +427,7 @@ export function startListening(options: ListenOptions = {}): ListenStart {
   };
 
   /** Replaces the recogniser with a new one for `next` (same hold, in cloud mode unless `onDevice`; `fallback` tells the caller it fell back from on-device); false when it could not start, leaving the old one in place. */
-  const restart = (next: string, onDevice: boolean, fallback: boolean): boolean => {
+  const restart = (next: string | undefined, onDevice: boolean, fallback: boolean): boolean => {
     const previous = { recognizer: current, mode, announced, lang };
     try {
       const fresh = configure(Ctor, next, onDevice);
@@ -412,6 +446,41 @@ export function startListening(options: ListenOptions = {}): ListenStart {
       lang = previous.lang;
       return false;
     }
+  };
+
+  /** Asks the browser once for the on-device en-US pack (Chrome's SpeechRecognition.install), for later holds; this hold goes on without waiting. */
+  const askForPack = () => {
+    if (packAsked || typeof Ctor.install !== 'function') return;
+    packAsked = true;
+    try {
+      void Promise.resolve(Ctor.install({ langs: [DEFAULT_LANG], processLocally: true })).catch(() => undefined);
+    } catch {
+      // not offered after all
+    }
+  };
+  /**
+   * The live route failed with `code`: true when the hold went on by the next route. A language-not-supported walks every
+   * route; an on-device service refusal goes to the next (cloud) route and no further; a route whose recogniser cannot start
+   * counts as tried.
+   */
+  const nextRoute = (code: string): boolean => {
+    if (text) return false;
+    const failed = routes[routeIndex];
+    if (code === 'language-not-supported') {
+      if (failed.onDevice) askForPack();
+    } else if (!(failed.onDevice && ON_DEVICE_FAILURES.has(code))) return false;
+    while (routeIndex + 1 < routes.length) {
+      routeIndex++;
+      const route = routes[routeIndex];
+      if (restart(route.lang, route.onDevice, failed.onDevice && !route.onDevice)) return true;
+    }
+    return false;
+  };
+  /** The error `code` as the hold reports it: a language-not-supported names the routes tried. */
+  const failure = (code: string): ListenError => {
+    const made = listenError(code, app);
+    if (code !== 'language-not-supported') return made;
+    return { ...made, message: `${made.message} (tried: ${routes.slice(0, routeIndex + 1).map(routeName).join(', ')})` };
   };
 
   /** Starts `recognizer` as the one this hold listens through; the one it replaces goes quiet. */
@@ -437,10 +506,13 @@ export function startListening(options: ListenOptions = {}): ListenStart {
         transient = listenError(event.error, app);
         return;
       }
-      if (mode === 'on-device' && !retried && !stopping && !outcome && !text && ON_DEVICE_FAILURES.has(event.error)) {
-        retried = true;
-        if (restart(lang, false, true)) return;
+      if (stopping && event.error === 'language-not-supported' && !announced && !text) {
+        // He has let go, and the route never opened the microphone (Android's on-device check answering after the release):
+        // the next route would have recovered it, so it is nothing to show. The hold settles with nothing heard.
+        finish();
+        return;
       }
+      if (!stopping && nextRoute(event.error)) return;
       if (event.error === 'audio-capture' && input && !inputRetried && !stopping && !text) {
         // The chosen input has no capture device behind it: go on the phone's default microphone.
         inputRetried = true;
@@ -448,11 +520,7 @@ export function startListening(options: ListenOptions = {}): ListenStart {
         options.onInput?.(undefined);
         if (restart(lang, mode === 'on-device', false)) return;
       }
-      if (event.error === 'language-not-supported' && !langRetried && !stopping && !text && lang !== DEFAULT_LANG) {
-        langRetried = true;
-        if (restart(DEFAULT_LANG, false, false)) return;
-      }
-      error = listenError(event.error, app);
+      error = failure(event.error);
       options.onError?.(error);
     };
     recognizer.onend = () => {
