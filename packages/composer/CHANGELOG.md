@@ -2,6 +2,21 @@
 
 Newest first. Breaking changes come first in a release, each with its migration in one sentence.
 
+## 0.3.0 (2026-10-15)
+
+- Changed: the language-not-supported message now ends with the routes tried, as in '(tried: on-device en-US, cloud en-US,
+  cloud default)'; an app whose tests match the whole message takes the suffix.
+- Fixed: a language-not-supported no longer reaches the screen when another route can hear him (mw-hgtlf5.1). On Android
+  Chrome `processLocally` is offered but never honoured: every on-device start is answered language-not-supported a moment
+  later, opens no microphone and fires no end event, so a hold let go before that answer used to settle with the error and
+  show it. Now such a hold settles with nothing heard. A language-not-supported walks the hold's routes, each once
+  (`listenRoutes`): on-device and cloud in the page's language, then on-device en-US (asking Chrome's
+  `SpeechRecognition.install` for the pack where it exists, once, for later holds) and cloud en-US, then the cloud with
+  no language set; only the last route's failure is shown.
+- New: after a hold that ended with a notice and no words, the bar says `tryAgain` 'Try again': a hold on it is a fresh
+  one, every route untried. `useHold`'s `mode` follows the route the mic opened on.
+- New: `listenRoutes`, `routeName` and the `ListenRoute` type are exported.
+
 ## 0.2.0 (2026-10-10)
 
 - New: with something attached and nothing typed, a Send arrow stands beside Hold to talk (mw-jtzpw0.9): one tap sends the

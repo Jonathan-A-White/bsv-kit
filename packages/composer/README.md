@@ -38,7 +38,7 @@ createRoot(document.getElementById('root')!).render(<App />);
 | `transcriber`  | How audio becomes text. Default `browserSpeech` (the browser's SpeechRecognition, as Postern does: words as he speaks). `transcribeRecording(fn)` records the hold and calls `fn(recording)` on release for the words (your own speech-to-text service). |
 | `attach`, `camera` | Show the attach (any file; paste and drop too) and camera buttons. Both hidden when not given. |
 | `recordVoice`  | Send each hold's voice as a voice note beside the words (with `browserSpeech`; `transcribeRecording` already has the recording). |
-| `labels`       | Any of the words on the screen (`DEFAULT_LABELS`): `hold` 'Hold to talk', `typeInstead` and `placeholder` 'Type a message', `release`, `drop`, `kept`, `send`, `speak`, `attach`, `camera`, ... |
+| `labels`       | Any of the words on the screen (`DEFAULT_LABELS`): `hold` 'Hold to talk', `tryAgain` 'Try again' (the bar after a hold that ended with a notice), `typeInstead` and `placeholder` 'Type a message', `release`, `drop`, `kept`, `send`, `speak`, `attach`, `camera`, ... |
 | `refuseFile`   | `(file) => reason or undefined`: a refused file is not added and the reason is shown.            |
 | `onNotice`     | Takes what the composer would say about a refused file or a failed send (to show it as a toast). |
 | `lang`, `appName` | The language to listen for (default the page's `<html lang>`), and the app's name in "the microphone is not allowed for ..." |
