@@ -2,6 +2,14 @@
 
 Newest first. Breaking changes come first in a release, each with its migration in one sentence.
 
+## Unreleased
+
+- Fixed: a pause in a hold no longer rings the phone's start tone (mw-q6n8m0.5). The recogniser is started once in a hold;
+  when it ends by itself while he holds, the rest of the hold is recorded instead of the recogniser being started again,
+  and on release its words follow those heard before (`startListening`'s new `transcribeRest`, by default the recording
+  played into a fresh recogniser). Words that cannot be made out come back as the result's `missed` and `useHold`'s
+  notice. A page that cannot record starts the recogniser again, as before.
+
 ## 0.3.0 (2026-10-15)
 
 - Changed: the language-not-supported message now ends with the routes tried, as in '(tried: on-device en-US, cloud en-US,
