@@ -6,6 +6,14 @@ Settings or About, a **Check for updates** button, and the **link** from the ver
 It needs React 18 or later (`react` and `react-dom`, peer dependencies) and imports nothing from bsv, grist, tips or
 composer. It keeps one string in the page's `localStorage`, under a key the app names, and nothing else.
 
+## Install
+
+From the repo's tag; the repo's [README](../../README.md#install) has the pinned-commit form and the npm 11 `allowScripts` note.
+
+```bash
+npm install github:Jonathan-A-White/bsv-kit#v0.2.0
+```
+
 An app wires it in five lines:
 
 ```tsx

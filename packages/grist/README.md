@@ -4,6 +4,16 @@ Send grist with photos and recordings and poll the mill's answer (Postern's `doc
 uses bsv only through its public exports, imported by the name a consumer's install resolves:
 `'bsv-kit/bsv'`.
 
+## Install
+
+From the repo's tag; the repo's [README](../../README.md#install) has the pinned-commit form and the npm 11 `allowScripts` note.
+
+```bash
+npm install github:Jonathan-A-White/bsv-kit#v0.2.0
+```
+
+## Use
+
 ```ts
 import { door, vault } from 'bsv-kit/bsv';
 import { grist } from 'bsv-kit/grist';

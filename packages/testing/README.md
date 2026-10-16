@@ -6,7 +6,15 @@ fire every event the real ones fire, in order, after the time the real ones take
 
 It imports nothing from the other bsv-kit libraries and needs no DOM library: you hand it the window to put the fakes on.
 
-Install bsv-kit as the root README says (it is a devDependency for an app), then import the subpaths:
+## Install
+
+From the repo's tag (a devDependency for an app); the repo's [README](../../README.md#install) has the pinned-commit form and the npm 11 `allowScripts` note.
+
+```bash
+npm install github:Jonathan-A-White/bsv-kit#v0.2.0
+```
+
+Then import the subpaths:
 
 | Import                    | What it fakes                                                      |
 | ------------------------- | ------------------------------------------------------------------ |

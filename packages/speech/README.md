@@ -11,6 +11,16 @@ It is two entries. `bsv-kit/speech` is the engine, with no framework. `bsv-kit/s
 imports nothing from the other bsv-kit libraries. It keeps no storage and reaches no network: the text is spoken locally by the
 phone's own `speechSynthesis`.
 
+## Install
+
+From the repo's tag; the repo's [README](../../README.md#install) has the pinned-commit form and the npm 11 `allowScripts` note.
+
+```bash
+npm install github:Jonathan-A-White/bsv-kit#v0.2.0
+```
+
+## Use
+
 ```tsx
 import { speak, stop } from 'bsv-kit/speech';
 import { SpeakingBar, useSpeaking } from 'bsv-kit/speech/react';

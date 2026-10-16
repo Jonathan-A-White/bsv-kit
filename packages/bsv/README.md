@@ -1,14 +1,52 @@
 # @bsv-kit/bsv
 
 The key vault, the door client for signed Postern API calls, and the licence check. Runtime
-dependencies: `@bsv/sdk` and `@scure/bip39`. It imports nothing from grist.
+dependencies: `@bsv/sdk` and `@scure/bip39`. It imports nothing from grist, so an app can use bsv alone.
+
+## Install
+
+From the repo's tag (there is no registry; `prepare` builds the libraries on install). The repo's
+[README](../../README.md#install) has the pinned-commit form and the npm 11 `allowScripts` note.
+
+```bash
+npm install github:Jonathan-A-White/bsv-kit#v0.2.0
+```
 
 ```ts
 import { vault, door, licence } from 'bsv-kit/bsv';
 ```
 
-Lifted from Postern's `src/services/` (`vault.ts`, `keySession.ts`, `session.ts`, `apiAuth.ts`,
-`licence.ts`); Postern's wire formats are the law. `vault` is real (generate, wrap, unwrap, storage port, day-long session); `door` is real (below); `licence` is real (further below).
+Import it as `bsv-kit/bsv`, the name a consumer's install resolves, never as `@bsv-kit/bsv`.
+
+## A key and a signed call
+
+A first run makes a key and a recovery phrase, keeps the key wrapped at rest, and asks Postern who the key is:
+
+```ts
+import { vault, door } from 'bsv-kit/bsv';
+
+const showOnce = (words: string): void => console.log(words);   // the app's own screen
+
+const { phrase, key, publicKeyHex } = await vault.generate();
+showOnce(phrase);                                               // show the phrase once; never store it
+const storage = new vault.MemoryStorage();                      // any { get, set, remove } will do (sync or async)
+await vault.saveVault(storage, await vault.wrap(key, { passphrase: 'a long passphrase' }));
+
+const wrapped = await vault.loadVault(storage);                 // a later launch
+const unlocked = wrapped ? await vault.unwrap(wrapped, { passphrase: 'a long passphrase' }) : null;
+
+const session = vault.createKeySession();                       // the unlocked key, kept a day
+if (unlocked) await session.setKey(unlocked);
+
+const d = new door.Door({ baseUrl: 'https://backend.example', key: session.getKey() ?? key });
+const me = await d.me();                                         // GET /api/me, signed
+console.log(publicKeyHex, me);
+```
+
+## Modules
+
+The door, then the licence check. Lifted from Postern's `src/services/` (`vault.ts`, `keySession.ts`, `session.ts`, `apiAuth.ts`,
+`licence.ts`); Postern's wire formats are the law. `vault` (above: generate, wrap, unwrap, storage port, day-long session), `door` (below) and `licence` (further below) are all real.
 
 ```ts
 const d = new door.Door({ baseUrl: 'https://backend.example', key /* raw 32-byte master key */ });

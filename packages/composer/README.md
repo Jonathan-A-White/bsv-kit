@@ -6,6 +6,16 @@ below the bar, with 'Type a message' to type instead. An app can open it speak-f
 (the text box and Send, with a small mic). It is the one library in bsv-kit with UI: it needs React 18 or later
 (`react` and `react-dom`, peer dependencies) and imports nothing from bsv, grist or tips.
 
+## Install
+
+From the repo's tag; the repo's [README](../../README.md#install) has the pinned-commit form and the npm 11 `allowScripts` note.
+
+```bash
+npm install github:Jonathan-A-White/bsv-kit#v0.2.0
+```
+
+## Use
+
 ```tsx
 import { createRoot } from 'react-dom/client';
 import { Composer } from 'bsv-kit/composer';
