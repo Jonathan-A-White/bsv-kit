@@ -48,6 +48,9 @@ npm 11 warns that `bsv-kit` has an install script (`prepare`, the build) not yet
 "allowScripts": { "github:Jonathan-A-White/bsv-kit#v0.2.0": true }
 ```
 
+The tag `v0.2.0` is the commit `0e2b3004c2f455c1f70f7a013e6746e0b2275152`; pinning that full SHA in the install line and in `allowScripts`
+installs the same code.
+
 ```ts
 import { vault, door, licence } from 'bsv-kit/bsv';
 import { grist } from 'bsv-kit/grist';
