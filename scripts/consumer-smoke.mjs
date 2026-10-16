@@ -258,7 +258,9 @@ console.log('bsv-kit/speech and bsv-kit/speech/react work');
   for (const file of ['index.js', 'speech.js', 'mic.js', 'clips.js']) {
     if (!existsSync(join(installed, 'packages/testing/dist', file))) throw new Error(`packages/testing/dist/${file} is not packed`);
   }
-  run('npm', ['install', '--no-audit', '--no-fund', 'vitest@4'], app, { timeout: 480_000 });
+  // --legacy-peer-deps: npm 10.8 (the runner's) crashes ('Cannot read properties of null (reading edgesOut)') resolving vitest's
+  // optional peer set once the registry's @vitest/browser-playwright 5.x joins it; vitest's own dependencies still install.
+  run('npm', ['install', '--no-audit', '--no-fund', '--legacy-peer-deps', 'vitest@4'], app, { timeout: 480_000 });
   writeFileSync(
     join(app, 'testing.test.mjs'),
     `
