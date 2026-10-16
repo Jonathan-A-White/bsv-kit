@@ -33,11 +33,11 @@ page lives under `examples/` (see
 
 ## Install
 
-From GitHub, pinned to a commit (there is no registry and no tag yet; tags come later, and the line
-becomes `#vX.Y.Z`). `prepare` builds both packages on install:
+From GitHub, by tag (there is no registry). The latest is `v0.2.0`; `prepare` builds the libraries on install. An app
+pins a tag or a full commit SHA, never a branch:
 
 ```bash
-npm install github:Jonathan-A-White/bsv-kit#20077847f5af718c83d9912f935f644a2cbbe2b0
+npm install github:Jonathan-A-White/bsv-kit#v0.2.0
 ```
 
 npm 11 warns that `bsv-kit` has an install script (`prepare`, the build) not yet covered by
@@ -45,7 +45,7 @@ npm 11 warns that `bsv-kit` has an install script (`prepare`, the build) not yet
 `package.json` keyed by the install line, for example:
 
 ```json
-"allowScripts": { "github:Jonathan-A-White/bsv-kit#20077847f5af718c83d9912f935f644a2cbbe2b0": true }
+"allowScripts": { "github:Jonathan-A-White/bsv-kit#v0.2.0": true }
 ```
 
 ```ts
@@ -81,8 +81,6 @@ Postern's wire formats are the law; each module is lifted from the Postern file 
 | `bsv-kit/testing/speech` | `installSpeech`, `speechInitScript` | TEST-ONLY honest speechSynthesis, vitest and Playwright | (new; not from Postern) |
 | `bsv-kit/testing/mic` | `installMic`, `micInitScript`, `clips` | TEST-ONLY honest getUserMedia, MediaRecorder and SpeechRecognition | (new; not from Postern) |
 | `bsv-kit/composer` | `Composer`, `useHold`, ... | the hold-to-talk message composer (React) | `listen.ts`, `micInput.ts`, `recorder.ts`; and `src/cockpit/`: `Composer.tsx`, `HoldToTalkBar.tsx`, `useHold.ts` |
-
-All namespaces are stubs until their stories land.
 
 ## Credits
 
@@ -159,4 +157,5 @@ Projects and ideas we took:
 npm ci --no-audit --no-fund && npm run lint && npm run typecheck && npm test && npm run build
 ```
 
-See [CLAUDE.md](CLAUDE.md) for conventions. MIT licensed.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to propose a change, [CLAUDE.md](CLAUDE.md) for conventions and
+[CHANGELOG.md](CHANGELOG.md) for what each release changed. MIT licensed.
