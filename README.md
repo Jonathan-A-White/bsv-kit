@@ -1,43 +1,29 @@
 # bsv-kit
 
 Shared TypeScript libraries for the Governor's PWAs, lifted from the working code in
-[Postern](https://github.com/Jonathan-A-White/postern). One repo, seven separate libraries:
+[Postern](https://github.com/Jonathan-A-White/postern). One repo, two separate libraries:
 
 - `@bsv-kit/bsv`: key vault, door client for signed Postern API calls, licence check.
 - `@bsv-kit/grist`: send grist with photos and recordings, poll the mill's answer (and a one-page read
   for apps that keep their own cursor). It may use bsv only
-  through bsv's public exports; bsv imports nothing from grist, so an app can use bsv alone.
-- `@bsv-kit/tips`: a list of one-time tips, which one to show now, and dismissed for good, through a
-  storage the app injects. It imports nothing from bsv or grist.
-- `@bsv-kit/composer`: Postern's message composer, a React component: hold to talk with the words shown as they
-  are heard, slide off to keep them unsent, quiet attach and camera, 'Type a message'; speak-first or
-  type-first; themed by CSS custom properties. It imports nothing from bsv, grist or tips. See
-  [packages/composer](packages/composer/README.md).
-- `@bsv-kit/whats-new`: every app's What's new, a React package: the Update ready banner's summary, a one-time
-  What's new sheet after an update, the versions list for About, a Check for updates button, and the version link
-  to `CHANGELOG.md` on GitHub; themed by CSS custom properties. It imports nothing from the other libraries. See
-  [packages/whats-new](packages/whats-new/README.md).
-- `@bsv-kit/speech`: Postern's read-aloud engine: a text spoken a sentence at a time, Pause, Resume, Restart and Stop
-  that keep the place, a hidden page or a left screen pauses it, and every utterance names its language (Greek, Hebrew or
-  English, from its letters) and a voice for it. A React entry gives `useSpeaking(key)` and a themeable `SpeakingBar`.
-  It imports nothing from the other libraries. See [packages/speech](packages/speech/README.md).
-- `@bsv-kit/testing`: honest fakes for an app's tests, in vitest and in Playwright: a speech synthesiser and a
-  microphone (getUserMedia, MediaRecorder, SpeechRecognition) that behave like Android Chrome in time. It imports
-  nothing from the other libraries. See [packages/testing](packages/testing/README.md).
+  through bsv's public exports; bsv imports nothing from grist, so an app can use bsv alone. Its `bsv-kit/testing` entry is a
+  fake Postern for an app's tests.
 
-No UI and no DOM live in bsv, grist or tips (and testing reads only the window it is handed); the composer and whats-new are the UI libraries, and need React 18 or later
-(`react`, `react-dom`: optional peer dependencies, so an app that does not use it needs no React). The speech engine uses the phone's `speechSynthesis` and the page's visibility, and needs React
-only for its `bsv-kit/speech/react` entry. The example
-page lives under `examples/` (see
-[examples/door-demo](examples/door-demo/README.md); `npm run demo` serves it) and [examples/composer-demo](examples/composer-demo/README.md) (the composer on a phone-sized page).
+No UI and no DOM live in either. The example page lives under `examples/` (see
+[examples/door-demo](examples/door-demo/README.md); `npm run demo` serves it).
+
+bsv-kit is for what cannot work without a BSV key. The libraries that used to sit beside them moved out at 1.0.0: the
+message composer, the read-aloud engine and the speech and microphone test fakes to
+[voice-kit](https://github.com/Jonathan-A-White/voice-kit), What's new and the one-time tips to
+[pwa-kit](https://github.com/Jonathan-A-White/pwa-kit). The [CHANGELOG](CHANGELOG.md) says where each went.
 
 ## Install
 
-From GitHub, by tag (there is no registry). The latest is `v0.2.0`; `prepare` builds the libraries on install. An app
+From GitHub, by tag (there is no registry). The latest is `v1.0.0`; `prepare` builds the libraries on install. An app
 pins a tag or a full commit SHA, never a branch:
 
 ```bash
-npm install github:Jonathan-A-White/bsv-kit#v0.2.0
+npm install github:Jonathan-A-White/bsv-kit#v1.0.0
 ```
 
 npm 11 warns that `bsv-kit` has an install script (`prepare`, the build) not yet covered by
@@ -45,25 +31,13 @@ npm 11 warns that `bsv-kit` has an install script (`prepare`, the build) not yet
 `package.json` keyed by the install line, for example:
 
 ```json
-"allowScripts": { "github:Jonathan-A-White/bsv-kit#v0.2.0": true }
+"allowScripts": { "github:Jonathan-A-White/bsv-kit#v1.0.0": true }
 ```
-
-The tag `v0.2.0` is the commit `0e2b3004c2f455c1f70f7a013e6746e0b2275152`; pinning that full SHA in the install line and in `allowScripts`
-installs the same code.
 
 ```ts
 import { vault, door, licence } from 'bsv-kit/bsv';
 import { grist } from 'bsv-kit/grist';
-import { tips } from 'bsv-kit/tips';
-import { Composer } from 'bsv-kit/composer'; // a React component
-import 'bsv-kit/composer/styles.css'; // its default look, themed by --bk-composer-* properties
-import { WhatsNewSheet } from 'bsv-kit/whats-new'; // a React component, with its own styles.css
-import { speak, pause, resume, restart, stop } from 'bsv-kit/speech'; // read aloud, framework-free
-import { SpeakingBar, useSpeaking } from 'bsv-kit/speech/react'; // the bar and the hook (React)
-import 'bsv-kit/speech/styles.css'; // the bar's default look, themed by --bk-speech-* properties
 import { fakePostern } from 'bsv-kit/testing'; // in tests only: a fake Postern behind a fetch
-import { installSpeech } from 'bsv-kit/testing/speech'; // in tests only: an honest speechSynthesis
-import { installMic, clips } from 'bsv-kit/testing/mic'; // in tests only: an honest microphone, recorder and recogniser
 ```
 
 ## Modules
@@ -76,14 +50,7 @@ Postern's wire formats are the law; each module is lifted from the Postern file 
 | `bsv-kit/bsv`    | `door`    | challenge-signed `/api` calls                | `apiAuth.ts`                                   |
 | `bsv-kit/bsv`    | `licence` | does a key hold a License token              | `licence.ts`                                   |
 | `bsv-kit/grist`  | `grist`   | send grist with photos, poll the answer      | `send.ts`, `attachments.ts`, `talk.ts`         |
-| `bsv-kit/tips`   | `tips`    | one-time tips, dismissed for good            | (new; not from Postern)                        |
-| `bsv-kit/whats-new` | `WhatsNewSheet`, `summarise`, ... | What's new for every app: summary, one-time sheet, list, Check for updates (React) | (new; not from Postern) |
-| `bsv-kit/speech` | `speak`, `pause`, `resume`, `restart`, `stop`, ... | read aloud a sentence at a time, keeping the place; language and voice per utterance | `speech.ts` |
-| `bsv-kit/speech/react` | `SpeakingBar`, `useSpeaking`, `useSpeech` | the one bar for anything read aloud, and the hook a speaker button reads (React) | `src/cockpit/`: `SpeakingBar.tsx`, `useSpeaking.ts` |
 | `bsv-kit/testing`| `fakePostern` | TEST-ONLY fake backend for an app's tests | (the grist tests' own fake)                    |
-| `bsv-kit/testing/speech` | `installSpeech`, `speechInitScript` | TEST-ONLY honest speechSynthesis, vitest and Playwright | (new; not from Postern) |
-| `bsv-kit/testing/mic` | `installMic`, `micInitScript`, `clips` | TEST-ONLY honest getUserMedia, MediaRecorder and SpeechRecognition | (new; not from Postern) |
-| `bsv-kit/composer` | `Composer`, `useHold`, ... | the hold-to-talk message composer (React) | `listen.ts`, `micInput.ts`, `recorder.ts`; and `src/cockpit/`: `Composer.tsx`, `HoldToTalkBar.tsx`, `useHold.ts` |
 
 ## Credits
 
@@ -105,11 +72,6 @@ Runtime libraries (installed with the libraries):
 - [@scure/bip39](https://github.com/paulmillr/scure-bip39): BIP-39 recovery words for the key vault in `@bsv-kit/bsv`, by
   Paul Miller. Licence: [MIT](https://github.com/paulmillr/scure-bip39/blob/main/LICENSE). No changes. Kind: package.
 
-Runtime libraries the app brings (peer dependencies of the composer, whats-new and speech's React entry only):
-
-- [React](https://react.dev): `react` and `react-dom`, the UI library `@bsv-kit/composer`, `@bsv-kit/whats-new` and `@bsv-kit/speech/react` are written for (18 or later). Licence:
-  [MIT](https://github.com/facebook/react/blob/main/LICENSE). No changes. Kind: package.
-
 Outside services:
 
 - [WhatsOnChain](https://whatsonchain.com): the block explorer API that the licence check reads transactions from. Licence:
@@ -123,30 +85,12 @@ Tools used to build and test (not installed by apps):
 - [ESLint](https://eslint.org): the linter. Licence: [MIT](https://github.com/eslint/eslint/blob/main/LICENSE). No changes. Kind: package.
 - [Vite](https://vite.dev): serves and builds the example page under `examples/`. Licence:
   [MIT](https://github.com/vitejs/vite/blob/main/LICENSE). No changes. Kind: package.
-- [@testing-library/react](https://testing-library.com/docs/react-testing-library/intro): renders the composer in its
-  tests. Licence: [MIT](https://github.com/testing-library/react-testing-library/blob/main/LICENSE). No changes. Kind: package.
-- [@testing-library/dom](https://testing-library.com/docs/dom-testing-library/intro): finds what the composer's tests
-  render. Licence: [MIT](https://github.com/testing-library/dom-testing-library/blob/main/LICENSE). No changes. Kind: package.
-- [playwright-core](https://playwright.dev): drives the Chromium that the smoke test of `@bsv-kit/testing` installs its fakes into.
-  Licence: [Apache-2.0](https://github.com/microsoft/playwright/blob/main/LICENSE). No changes. Kind: package.
-- [jsdom](https://github.com/jsdom/jsdom): the page the composer's tests run in. Licence:
-  [MIT](https://github.com/jsdom/jsdom/blob/main/LICENSE.txt). No changes. Kind: package.
-
-Data bundled with `@bsv-kit/testing`:
-
-- [eSpeak NG](https://github.com/espeak-ng/espeak-ng): its synthesiser spoke the two test clips in `packages/testing/clips` (an English and
-  a Greek sentence), made again by `packages/testing/scripts/make-clips.mjs`; the clips are committed as audio, the program is not
-  shipped. Licence: [GPL-3.0-or-later](https://github.com/espeak-ng/espeak-ng/blob/master/COPYING). We use its output as it came, resampled to 16 kHz.
-  Kind: data.
 
 Projects and ideas we took:
 
 - [Postern](https://github.com/Jonathan-A-White/postern): the code and wire formats here are lifted from Postern's working code, which is
   the law for them. Licence: [MIT](https://github.com/Jonathan-A-White/postern/blob/main/LICENSE). Adapted into separate libraries with
-  no UI, no DOM and injected storage, but for the composer and the speech bar, which keep Postern's UI and its tests and leave Postern's own
-  parts (threads, drafts, saved prompts) in Postern. Kind: idea.
-- [FFmpeg](https://ffmpeg.org): resampled and trimmed the test clips of `@bsv-kit/testing` once, to make them. Licence:
-  [LGPL-2.1-or-later](https://ffmpeg.org/legal.html). Used as published. Kind: tool.
+  no UI, no DOM and injected storage. Kind: idea.
 - [Beads](https://github.com/steveyegge/beads): Steve Yegge's issue tracker for AI agents; the work on this repo is tracked in it.
   Licence: [MIT](https://github.com/steveyegge/beads/blob/main/LICENSE). Used as published. Kind: tool.
 - [Gas Town](https://github.com/steveyegge/gastown): Steve Yegge's idea of a factory of coordinating agent roles, which shaped how

@@ -13,9 +13,8 @@ npm ci --no-audit --no-fund && npm run lint && npm run typecheck && npm test && 
 
 All of it must pass before a change is proposed. `npm test` runs every package's tests (they need no network, apart from
 `scripts/consumer-smoke.mjs`, which installs the repo into a scratch app and needs the network or a warm npm cache) and the
-checks in `scripts/` (nothing personal in a tracked file, the README's Credits). The one Chromium test, in
-`packages/testing/tests/playwright.test.ts`, skips with a note when Chromium will not launch;
-`BSV_KIT_REQUIRE_CHROMIUM=1` makes that a failure. `npm run demo` serves the door demo under `examples/`.
+checks in `scripts/` (nothing personal in a tracked file, the README's Credits). `npm run demo` serves the door demo
+under `examples/`.
 
 [CLAUDE.md](CLAUDE.md) holds the layout of the repo and its conventions, and is the place to start.
 
@@ -39,8 +38,7 @@ checks in `scripts/` (nothing personal in a tracked file, the README's Credits).
   with breaking changes first, and raises the package's version in its `package.json` and in `package-lock.json`.
 - **Docs that match.** A new or changed call is in the package's README, with an example that runs.
 - **The boundaries kept.** Each library stands alone. grist may use bsv only through its public exports, imported as
-  `bsv-kit/bsv`; bsv imports nothing from grist; tips, composer, whats-new, speech and testing import nothing from the
-  others. A dependency-rule test in each package says so. No UI and no DOM inside bsv, grist and tips.
+  `bsv-kit/bsv`; bsv imports nothing from grist. A dependency-rule test says so. No UI and no DOM inside bsv and grist.
 - **Nothing personal.** No host name, home-directory path or full public key in a tracked file outside
   `tests/fixtures/` (`npm run check:personal`, part of `npm test`).
 - **Strict TypeScript and ESM.** Relative imports end in `.js`; lint forbids explicit `any`.
