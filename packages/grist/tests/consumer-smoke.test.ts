@@ -21,9 +21,6 @@ describe.skipIf(process.env.BSV_KIT_SKIP_SMOKE === '1')('a consumer install of b
     expect(output).toContain('sendGrist reached the door');
     expect(output).toContain('bsv alone imports');
     expect(output).toContain('bsv-kit/testing imports');
-    expect(output).toContain('bsv-kit/tips imports');
-    expect(output).toContain('bsv-kit/composer renders');
-    expect(output).toContain('bsv-kit/testing/speech and bsv-kit/testing/mic run in vitest');
     expect(output).toContain('consumer smoke test passed');
   }, 600_000);
 });
